@@ -1,7 +1,7 @@
 .PHONY: help \
 	backend backend-build backend-vet backend-test backend-lint backend-windows \
 	frontend frontend-install frontend-typecheck frontend-test frontend-build \
-	test dev package clean
+	test dev run package clean
 
 help:
 	@echo "Backend (Go):"
@@ -22,6 +22,7 @@ help:
 	@echo "Combined:"
 	@echo "  make test               - backend + frontend"
 	@echo "  make dev                - wails3 dev"
+	@echo "  make run                - build the native app and open it (no browser)"
 	@echo "  make package            - wails3 package (see also: wails3 task package:dmg)"
 	@echo "  make clean              - remove build artifacts"
 
@@ -68,6 +69,9 @@ test: backend frontend
 
 dev:
 	wails3 dev
+
+run:
+	wails3 build && ./bin/vault
 
 package:
 	wails3 package

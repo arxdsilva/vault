@@ -12,14 +12,16 @@ import (
 // §5.1 Home screen, §4.3 pinned rail) to the frontend.
 type Pinned struct {
 	path string
+	home string
 
 	mu    sync.RWMutex
 	store *core.Pinned
 }
 
-// NewPinned returns a Pinned persisted at path.
-func NewPinned(path string) *Pinned {
-	return &Pinned{path: path}
+// NewPinned returns a Pinned persisted at path. home seeds the pin list with
+// Finder/Explorer-style starter folders (see core.DefaultPins) on first run.
+func NewPinned(path, home string) *Pinned {
+	return &Pinned{path: path, home: home}
 }
 
 // ServiceName names this service for Wails logging/debugging.
@@ -27,7 +29,7 @@ func (p *Pinned) ServiceName() string { return "Pinned" }
 
 // ServiceStartup loads the persisted pin list.
 func (p *Pinned) ServiceStartup(_ context.Context, _ application.ServiceOptions) error {
-	store, err := core.LoadPinned(p.path)
+	store, err := core.LoadPinned(p.path, core.DefaultPins(p.home))
 	if err != nil {
 		return err
 	}

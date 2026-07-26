@@ -79,11 +79,16 @@ func (p *Pinned) Save(path string) error {
 }
 
 // LoadPinned reads a pin list previously written by Save. A missing file is
-// not an error: it returns an empty, ready-to-use Pinned.
-func LoadPinned(path string) (*Pinned, error) {
+// not an error: it returns a Pinned seeded with defaults (e.g. from
+// DefaultPins), so first run isn't a blank rail like Finder/Explorer.
+func LoadPinned(path string, defaults []string) (*Pinned, error) {
 	b, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
-		return NewPinned(), nil
+		p := NewPinned()
+		for _, d := range defaults {
+			p.Add(d)
+		}
+		return p, nil
 	}
 	if err != nil {
 		return nil, err
@@ -94,4 +99,23 @@ func LoadPinned(path string) (*Pinned, error) {
 		return nil, err
 	}
 	return &Pinned{paths: paths}, nil
+}
+
+// DefaultPins returns the Finder/Explorer-style starter pins for a first
+// run: home and its Desktop/Documents/Downloads subfolders, limited to the
+// ones that actually exist.
+func DefaultPins(home string) []string {
+	candidates := []string{
+		home,
+		filepath.Join(home, "Desktop"),
+		filepath.Join(home, "Documents"),
+		filepath.Join(home, "Downloads"),
+	}
+	var out []string
+	for _, c := range candidates {
+		if info, err := os.Stat(c); err == nil && info.IsDir() {
+			out = append(out, c)
+		}
+	}
+	return out
 }

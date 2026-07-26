@@ -9,9 +9,17 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
+// noHome is a home directory that doesn't exist, so core.DefaultPins finds
+// nothing to seed (not even the home dir itself) and tests unconcerned with
+// seeding keep their original "starts empty" behavior.
+func noHome(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(t.TempDir(), "no-such-home")
+}
+
 func startPinned(t *testing.T, path string) *Pinned {
 	t.Helper()
-	p := NewPinned(path)
+	p := NewPinned(path, noHome(t))
 	if err := p.ServiceStartup(context.Background(), application.ServiceOptions{}); err != nil {
 		t.Fatalf("ServiceStartup: %v", err)
 	}
@@ -20,7 +28,7 @@ func startPinned(t *testing.T, path string) *Pinned {
 
 func TestPinnedService(t *testing.T) {
 	t.Run("List returns an empty slice, never null/nil, before ServiceStartup", func(t *testing.T) {
-		p := NewPinned(filepath.Join(t.TempDir(), "pinned.json"))
+		p := NewPinned(filepath.Join(t.TempDir(), "pinned.json"), noHome(t))
 		got := p.List()
 		if got == nil {
 			t.Fatal("List() = nil, want a non-nil empty slice (JSON must serialize as [], not null)")
@@ -54,7 +62,7 @@ func TestPinnedService(t *testing.T) {
 			t.Fatalf("Add: %v", err)
 		}
 
-		reloaded := NewPinned(path)
+		reloaded := NewPinned(path, noHome(t))
 		if err := reloaded.ServiceStartup(context.Background(), application.ServiceOptions{}); err != nil {
 			t.Fatalf("ServiceStartup: %v", err)
 		}
@@ -107,6 +115,23 @@ func TestPinnedService(t *testing.T) {
 		}
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("expected pinned file to exist: %v", err)
+		}
+	})
+
+	t.Run("first run seeds pins from the home directory's starter folders", func(t *testing.T) {
+		home := t.TempDir()
+		if err := os.Mkdir(filepath.Join(home, "Desktop"), 0o755); err != nil {
+			t.Fatalf("Mkdir: %v", err)
+		}
+
+		p := NewPinned(filepath.Join(t.TempDir(), "pinned.json"), home)
+		if err := p.ServiceStartup(context.Background(), application.ServiceOptions{}); err != nil {
+			t.Fatalf("ServiceStartup: %v", err)
+		}
+
+		want := []string{home, filepath.Join(home, "Desktop")}
+		if got := p.List(); len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+			t.Errorf("List() = %v, want %v", got, want)
 		}
 	})
 }
