@@ -7,6 +7,7 @@ import { formatSize } from '../lib/formatSize'
 export const PINNED_DRAG_TYPE = 'text/vault-path'
 
 const HOVER_DELAY_MS = 350
+const HOVER_CARD_ID = 'pinned-hover-card'
 
 interface HoverCardState {
   path: string
@@ -19,6 +20,7 @@ interface HoverCardState {
 
 interface PinnedRailProps {
   pinned: string[]
+  currentDir: string | null
   onNavigate: (path: string) => void
   onAdd: (path: string) => void
   onReorder: (paths: string[]) => void
@@ -35,9 +37,10 @@ function itemsLabel(count: number | null): string {
 }
 
 // Slim 48px rail of pinned locations (spec §4.3): icons only, a rich hover
-// card (full path, item count/size, last modified), reorderable and
+// card (full path, item count/size, last modified) shown on hover *or*
+// keyboard focus so it's not a mouse-only affordance, reorderable and
 // extendable by dragging a folder onto it.
-export function PinnedRail({ pinned, onNavigate, onAdd, onReorder }: PinnedRailProps) {
+export function PinnedRail({ pinned, currentDir, onNavigate, onAdd, onReorder }: PinnedRailProps) {
   const [dragOverRail, setDragOverRail] = useState(false)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [hoverCard, setHoverCard] = useState<HoverCardState | null>(null)
@@ -51,10 +54,10 @@ export function PinnedRail({ pinned, onNavigate, onAdd, onReorder }: PinnedRailP
     }
   }
 
-  function handleMouseEnter(e: React.MouseEvent<HTMLButtonElement>, path: string) {
+  function showHoverCard(target: HTMLButtonElement, path: string, delayMs: number) {
     clearHoverTimer()
     if (draggingIndex !== null) return
-    const rect = e.currentTarget.getBoundingClientRect()
+    const rect = target.getBoundingClientRect()
     const requestId = ++hoverRequest.current
     hoverTimer.current = setTimeout(() => {
       setHoverCard({ path, top: rect.top, left: rect.right + 8, entry: null, itemCount: null, error: false })
@@ -75,10 +78,10 @@ export function PinnedRail({ pinned, onNavigate, onAdd, onReorder }: PinnedRailP
           setHoverCard({ path, top: rect.top, left: rect.right + 8, entry: null, itemCount: null, error: true })
         },
       )
-    }, HOVER_DELAY_MS)
+    }, delayMs)
   }
 
-  function handleMouseLeave() {
+  function hideHoverCard() {
     clearHoverTimer()
     hoverRequest.current += 1 // invalidate any in-flight fetch for the card we're leaving
     setHoverCard(null)
@@ -113,6 +116,8 @@ export function PinnedRail({ pinned, onNavigate, onAdd, onReorder }: PinnedRailP
 
   return (
     <div
+      role="group"
+      aria-label="Pinned locations"
       onDragOver={(e) => {
         e.preventDefault()
         setDragOverRail(true)
@@ -128,26 +133,34 @@ export function PinnedRail({ pinned, onNavigate, onAdd, onReorder }: PinnedRailP
           key={path}
           type="button"
           aria-label={nameOf(path)}
+          aria-current={path === currentDir ? 'true' : undefined}
+          aria-describedby={hoverCard?.path === path ? HOVER_CARD_ID : undefined}
           draggable
           onDragStart={(e) => {
             setDraggingIndex(i)
-            handleMouseLeave()
+            hideHoverCard()
             e.dataTransfer.setData(PINNED_DRAG_TYPE, path)
           }}
           onDragEnd={() => setDraggingIndex(null)}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => handleDropOnItem(e, i)}
-          onMouseEnter={(e) => handleMouseEnter(e, path)}
-          onMouseLeave={handleMouseLeave}
+          onMouseEnter={(e) => showHoverCard(e.currentTarget, path, HOVER_DELAY_MS)}
+          onMouseLeave={hideHoverCard}
+          onFocus={(e) => showHoverCard(e.currentTarget, path, 0)}
+          onBlur={hideHoverCard}
           onClick={() => onNavigate(path)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--surface)] hover:text-[var(--fg)]"
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] transition-colors duration-150 hover:bg-[var(--surface)] hover:text-[var(--fg)] ${
+            path === currentDir ? 'bg-[var(--surface)] text-[var(--fg)]' : 'text-[var(--muted)]'
+          }`}
         >
-          <Folder size={18} strokeWidth={1.5} />
+          <Folder size={18} strokeWidth={1.5} aria-hidden="true" />
         </button>
       ))}
 
       {hoverCard && (
         <div
+          id={HOVER_CARD_ID}
+          role="status"
           className="fixed z-50 flex w-64 flex-col gap-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] p-3 text-xs shadow-lg"
           style={{ top: hoverCard.top, left: hoverCard.left }}
         >

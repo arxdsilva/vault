@@ -1,5 +1,6 @@
 import { Check, Monitor, Moon, Sun } from 'lucide-react'
 import { defaultModelFor, type Provider } from '../lib/llmClient'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import { ACCENT_PRESETS, type Theme } from '../store/settings'
 
 interface SettingsPanelProps {
@@ -22,10 +23,14 @@ const THEME_OPTIONS: { value: Theme; label: string; Icon: typeof Sun }[] = [
   { value: 'dark', label: 'Dark', Icon: Moon },
 ]
 
+const HEADING_ID = 'settings-heading'
+
 // Minimal settings popover anchored under the gear button (spec §4.4):
 // appearance (theme + accent color presets), plus the AI Assistant's
 // provider/API key/model (spec §10) — one settings entry point rather than
-// a second surface.
+// a second surface. A dialog (role="dialog", focus trap, Escape to close,
+// focus restored to the gear button on close — see useFocusTrap) rather
+// than a plain popover div.
 export function SettingsPanel({
   accent,
   onSelectAccent,
@@ -39,12 +44,29 @@ export function SettingsPanel({
   onModelChange,
   onClose,
 }: SettingsPanelProps) {
+  const containerRef = useFocusTrap<HTMLDivElement>()
+
   return (
     <div className="fixed inset-0 z-50" onClick={onClose}>
       <div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={HEADING_ID}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            onClose()
+          }
+        }}
         className="absolute top-14 right-3 flex w-72 flex-col gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] p-3 shadow-lg"
       >
+        <h1 id={HEADING_ID} className="sr-only">
+          Settings
+        </h1>
+
         <div className="flex flex-col gap-2">
           <h2 className="text-xs font-medium tracking-wide text-[var(--muted)] uppercase">Appearance</h2>
           <div className="flex gap-1 rounded-[calc(var(--radius)-2px)] border border-[var(--border)] bg-[var(--surface)] p-1">
@@ -61,7 +83,7 @@ export function SettingsPanel({
                     : 'text-[var(--muted)] hover:text-[var(--fg)]'
                 }`}
               >
-                <Icon size={13} strokeWidth={1.75} />
+                <Icon size={13} strokeWidth={1.75} aria-hidden="true" />
                 {label}
               </button>
             ))}
@@ -82,7 +104,7 @@ export function SettingsPanel({
                 style={{ backgroundColor: preset.value }}
                 className="flex h-7 w-7 items-center justify-center rounded-full transition-transform duration-150 hover:scale-110"
               >
-                {accent === preset.value && <Check size={14} className="text-white" strokeWidth={3} />}
+                {accent === preset.value && <Check size={14} className="text-white" strokeWidth={3} aria-hidden="true" />}
               </button>
             ))}
           </div>

@@ -30,6 +30,7 @@ export function RenameInput({ initialName, onSubmit, onCancel }: RenameInputProp
     <input
       ref={ref}
       type="text"
+      aria-label={`Rename ${initialName}`}
       defaultValue={initialName}
       onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}

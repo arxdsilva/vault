@@ -13,6 +13,7 @@ A file manager that behaves like a command palette, not a filing cabinet. Users 
 3. **Instant.** Every interaction under 100ms perceived latency. Virtualize all lists. Never block the UI on filesystem I/O.
 4. **Keyboard-first.** Every action must be reachable without a mouse.
 5. **Calm aesthetics.** Generous whitespace, a single accent color, subtle 150–200ms transitions, native light/dark mode, defaulting to the OS setting but user-overridable in Settings.
+6. **Accessible by default.** Vault targets people who rely on assistive tech, not just power users who happen to prefer a keyboard — a visible focus indicator on every focusable control, real ARIA semantics (not just a mouse-driven visual highlight) on every custom widget, `aria-live` announcements for async/search state changes, and `prefers-reduced-motion` support. "Keyboard-first" (§4) is necessary but not sufficient for this on its own.
 
 ## 3. Tech Stack
 
@@ -31,7 +32,7 @@ Single window, three zones:
 
 1. **Top bar (56px):** search input, full width, always focused on launch. Right side: view toggle (list/grid) and settings gear only.
 2. **Path strip (36px):** clickable breadcrumbs (`Home › Projects › ClientX`). Hidden on the launch/search screen, visible when browsing a folder.
-3. **Content area:** virtualized file list (default) or grid. Left edge: a slim 48px rail of pinned locations (icons only, tooltip on hover, user-configurable via drag-drop).
+3. **Content area:** virtualized file list (default) or grid. Left edge: a slim 48px rail of pinned locations (icons only, rich hover card on hover *or* keyboard focus, user-configurable via drag-drop).
 
 No sidebar tree. No menu bar beyond the OS-required minimum.
 
@@ -88,6 +89,19 @@ No sidebar tree. No menu bar beyond the OS-required minimum.
 ### 5.7 Keyboard map (minimum)
 - Arrow keys: navigate. Enter: open. Cmd/Ctrl+↑: go to parent. Space: preview.
 - Cmd/Ctrl+K: palette. Cmd/Ctrl+F or just typing: search. F2: rename. Cmd/Ctrl+N: new folder.
+- Menu key (or Shift+F10): open the context menu for the current selection — the keyboard equivalent
+  of right-click.
+
+### 5.8 Accessibility
+- Every custom widget exposes real ARIA semantics, not just a CSS highlight: file list/grid/search
+  results are `listbox`/`option` with `aria-selected`; the command palette is a `dialog` containing a
+  `combobox`; the context menu is a `menu` of `menuitem`s; settings and preview are `dialog`s.
+- Every overlay (command palette, context menu, settings, preview) traps Tab focus while open and
+  restores focus to whatever triggered it on close (see `frontend/src/hooks/useFocusTrap.ts`).
+- A visible focus outline on every focusable control (no `outline-none` without a `:focus-visible`
+  replacement). `prefers-reduced-motion: reduce` shortens/disables transitions.
+- Async/dynamic state (search status, loading states, chat replies) is announced via `aria-live`/
+  `role="status"`/`role="log"`, not just shown visually.
 
 ## 6. Visual Design
 

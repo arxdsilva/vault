@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { buildFileActions, type FileActionContext } from '../lib/fileActions'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import { vault, type IndexEntry } from '../lib/vault'
 
 export type PaletteMode = 'closed' | 'actions' | 'moveTo'
@@ -13,14 +14,23 @@ interface CommandPaletteProps {
 }
 
 const MOVE_TO_LIMIT = 20
+const LISTBOX_ID = 'palette-listbox'
+
+function optionId(index: number): string {
+  return `palette-option-${index}`
+}
 
 // Action palette (Cmd/Ctrl+K, spec §5.5), scoped to the current selection.
 // "Move to…" reuses the same overlay in a second mode: a fuzzy folder
-// picker over the search index, filtered to directories.
+// picker over the search index, filtered to directories. Combobox pattern
+// (role="dialog" > role="combobox" input + role="listbox" results,
+// aria-activedescendant) so a screen reader gets the same "here's what's
+// highlighted" signal a sighted keyboard user gets from the highlight color.
 export function CommandPalette({ mode, onModeChange, ctx, onRunAction, onMoveTo }: CommandPaletteProps) {
   const [filter, setFilter] = useState('')
   const [selected, setSelected] = useState(0)
   const [folders, setFolders] = useState<IndexEntry[]>([])
+  const containerRef = useFocusTrap<HTMLDivElement>(mode !== 'closed')
 
   useEffect(() => {
     setFilter('')
@@ -95,22 +105,34 @@ export function CommandPalette({ mode, onModeChange, ctx, onRunAction, onMoveTo 
       onClick={() => onModeChange('closed')}
     >
       <div
+        ref={containerRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === 'actions' ? 'Command palette' : 'Move to folder'}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
         className="flex w-full max-w-md flex-col overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] shadow-lg"
       >
         <input
-          autoFocus
+          role="combobox"
+          aria-expanded="true"
+          aria-controls={LISTBOX_ID}
+          aria-activedescendant={list[selected] ? optionId(selected) : undefined}
+          aria-label={mode === 'actions' ? 'Type a command' : 'Search for a folder to move to'}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder={mode === 'actions' ? 'Type a command…' : 'Move to…'}
           className="h-11 w-full border-b border-[var(--border)] bg-transparent px-3 text-sm outline-none"
         />
-        <div className="max-h-72 overflow-y-auto py-1">
+        <div id={LISTBOX_ID} role="listbox" aria-label="Results" className="max-h-72 overflow-y-auto py-1">
           {mode === 'actions'
             ? items.map((item, i) => (
                 <button
                   key={item.id}
+                  id={optionId(i)}
+                  role="option"
+                  aria-selected={i === selected}
                   type="button"
                   disabled={item.disabled}
                   onClick={() => selectIndex(i)}
@@ -124,6 +146,9 @@ export function CommandPalette({ mode, onModeChange, ctx, onRunAction, onMoveTo 
             : folders.map((f, i) => (
                 <button
                   key={f.path}
+                  id={optionId(i)}
+                  role="option"
+                  aria-selected={i === selected}
                   type="button"
                   onClick={() => selectIndex(i)}
                   className={`flex h-9 w-full items-center px-3 text-left text-sm transition-colors duration-150 ${

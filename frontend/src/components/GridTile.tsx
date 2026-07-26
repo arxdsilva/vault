@@ -9,7 +9,10 @@ import { RenameInput } from './RenameInput'
 
 interface GridTileProps {
   entry: Entry
+  id: string
   selected: boolean
+  setSize: number
+  posInSet: number
   isRenaming: boolean
   onSelect: () => void
   onOpen: () => void
@@ -23,7 +26,10 @@ interface GridTileProps {
 // for kinds that don't have one (video, folders, ...), a generic icon shows.
 export function GridTile({
   entry,
+  id,
   selected,
+  setSize,
+  posInSet,
   isRenaming,
   onSelect,
   onOpen,
@@ -55,6 +61,11 @@ export function GridTile({
 
   return (
     <div
+      id={id}
+      role="option"
+      aria-selected={selected}
+      aria-setsize={setSize}
+      aria-posinset={posInSet}
       onClick={onSelect}
       onDoubleClick={onOpen}
       onContextMenu={onContextMenu}
@@ -72,7 +83,7 @@ export function GridTile({
             className="max-h-14 max-w-14 rounded-sm object-cover"
           />
         ) : (
-          <Icon size={32} strokeWidth={1.5} className="text-[var(--muted)]" />
+          <Icon size={32} strokeWidth={1.5} className="text-[var(--muted)]" aria-hidden="true" />
         )}
       </div>
       {isRenaming ? (

@@ -16,8 +16,14 @@ interface GridViewProps {
 
 const TILE_SIZE = 104 // px per tile, including gap
 
+function optionId(index: number): string {
+  return `grid-tile-${index}`
+}
+
 // Virtualized grid view (spec §5.3, §5.8): only visible rows of tiles are
-// rendered, same instant-scroll principle as the list view.
+// rendered, same instant-scroll principle as the list view. Exposed as a
+// listbox (role="listbox"/"option", aria-selected) — see FileList.tsx/
+// SearchResults.tsx for the same pattern and its virtualization caveat.
 export function GridView({
   entries,
   onOpen,
@@ -88,8 +94,8 @@ export function GridView({
 
   if (entries.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--muted)]">
-        <Folder size={28} strokeWidth={1.5} />
+      <div role="status" className="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--muted)]">
+        <Folder size={28} strokeWidth={1.5} aria-hidden="true" />
         <p className="text-sm">This folder is empty.</p>
       </div>
     )
@@ -98,7 +104,10 @@ export function GridView({
   return (
     <div
       ref={containerRef}
+      role="listbox"
+      aria-label="Files"
       tabIndex={0}
+      aria-activedescendant={entries[selected] ? optionId(selected) : undefined}
       onKeyDown={handleKeyDown}
       className="min-h-0 flex-1 overflow-y-auto outline-none"
     >
@@ -125,7 +134,10 @@ export function GridView({
                   <GridTile
                     key={entry.path}
                     entry={entry}
+                    id={optionId(index)}
                     selected={index === selected}
+                    setSize={entries.length}
+                    posInSet={index + 1}
                     isRenaming={entry.path === renamingPath}
                     onSelect={() => setSelected(index)}
                     onOpen={() => onOpen(entry)}

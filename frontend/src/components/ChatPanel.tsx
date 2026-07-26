@@ -50,11 +50,17 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
           onClick={onClose}
           className="rounded-[var(--radius)] p-1 text-[var(--muted)] transition-colors duration-150 hover:text-[var(--fg)]"
         >
-          <X size={16} />
+          <X size={16} aria-hidden="true" />
         </button>
       </div>
 
-      <div ref={scrollRef} className="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
+      <div
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-label="Conversation"
+        className="flex flex-1 flex-col gap-2 overflow-y-auto p-3"
+      >
         {messages.length === 0 && (
           <p className="text-sm text-[var(--muted)]">
             {apiKey ? 'Ask about your files.' : 'Set an API key in Settings to start chatting.'}
@@ -88,6 +94,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={apiKey ? 'Message the assistant…' : 'Set an API key in Settings first'}
+          aria-label="Message the assistant"
           disabled={!apiKey || sending}
           className="h-9 flex-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none transition-colors duration-150 focus:border-[var(--accent)] disabled:opacity-50"
         />
@@ -97,7 +104,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
           aria-label="Send"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] bg-[var(--accent)] text-white transition-opacity duration-150 disabled:opacity-40"
         >
-          <Send size={16} />
+          <Send size={16} aria-hidden="true" />
         </button>
       </form>
     </div>

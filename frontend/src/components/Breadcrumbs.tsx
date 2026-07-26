@@ -12,28 +12,36 @@ export function Breadcrumbs({ dir, onNavigate }: BreadcrumbsProps) {
   const segments = segmentsOf(dir)
 
   return (
-    <div className="flex h-9 shrink-0 items-center gap-1 overflow-x-auto border-b border-[var(--border)] px-3 text-sm text-[var(--muted)]">
+    <nav
+      aria-label="Breadcrumb"
+      className="flex h-9 shrink-0 items-center gap-1 overflow-x-auto border-b border-[var(--border)] px-3 text-sm text-[var(--muted)]"
+    >
       <button
         type="button"
+        aria-label="Home"
         onClick={() => onNavigate('/')}
         className="flex items-center gap-1 rounded-[calc(var(--radius)-2px)] px-1.5 py-1 transition-colors duration-150 hover:bg-[var(--surface)] hover:text-[var(--fg)]"
       >
-        <Home size={14} />
+        <Home size={14} aria-hidden="true" />
       </button>
-      {segments.map((segment, i) => (
-        <div key={segment.path} className="flex shrink-0 items-center gap-1">
-          <ChevronRight size={14} className="shrink-0" />
-          <button
-            type="button"
-            onClick={() => onNavigate(segment.path)}
-            className={`rounded-[calc(var(--radius)-2px)] px-1.5 py-1 whitespace-nowrap transition-colors duration-150 hover:bg-[var(--surface)] hover:text-[var(--fg)] ${
-              i === segments.length - 1 ? 'text-[var(--fg)]' : ''
-            }`}
-          >
-            {segment.label}
-          </button>
-        </div>
-      ))}
-    </div>
+      {segments.map((segment, i) => {
+        const isCurrent = i === segments.length - 1
+        return (
+          <div key={segment.path} className="flex shrink-0 items-center gap-1">
+            <ChevronRight size={14} className="shrink-0" aria-hidden="true" />
+            <button
+              type="button"
+              aria-current={isCurrent ? 'page' : undefined}
+              onClick={() => onNavigate(segment.path)}
+              className={`rounded-[calc(var(--radius)-2px)] px-1.5 py-1 whitespace-nowrap transition-colors duration-150 hover:bg-[var(--surface)] hover:text-[var(--fg)] ${
+                isCurrent ? 'text-[var(--fg)]' : ''
+              }`}
+            >
+              {segment.label}
+            </button>
+          </div>
+        )
+      })}
+    </nav>
   )
 }

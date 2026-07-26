@@ -20,8 +20,14 @@ interface FileListProps {
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 
+function optionId(index: number): string {
+  return `file-row-${index}`
+}
+
 // Virtualized file list (spec §4.3, §5.3): only visible rows are rendered so
-// scrolling stays smooth even with tens of thousands of entries.
+// scrolling stays smooth even with tens of thousands of entries. Exposed as
+// a listbox (role="listbox"/"option", aria-selected) — see SearchResults.tsx
+// for the same pattern and its virtualization caveat.
 export function FileList({
   entries,
   onOpen,
@@ -76,8 +82,8 @@ export function FileList({
 
   if (entries.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--muted)]">
-        <Folder size={28} strokeWidth={1.5} />
+      <div role="status" className="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--muted)]">
+        <Folder size={28} strokeWidth={1.5} aria-hidden="true" />
         <p className="text-sm">This folder is empty.</p>
       </div>
     )
@@ -86,7 +92,10 @@ export function FileList({
   return (
     <div
       ref={parentRef}
+      role="listbox"
+      aria-label="Files"
       tabIndex={0}
+      aria-activedescendant={entries[selected] ? optionId(selected) : undefined}
       onKeyDown={handleKeyDown}
       className="min-h-0 flex-1 overflow-y-auto outline-none"
     >
@@ -99,6 +108,11 @@ export function FileList({
           return (
             <div
               key={entry.path}
+              id={optionId(row.index)}
+              role="option"
+              aria-selected={isSelected}
+              aria-setsize={entries.length}
+              aria-posinset={row.index + 1}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -119,7 +133,7 @@ export function FileList({
                 isSelected ? 'bg-[var(--accent)]/15' : 'hover:bg-[var(--surface)]'
               }`}
             >
-              <Icon size={16} className="shrink-0 text-[var(--muted)]" strokeWidth={1.5} />
+              <Icon size={16} className="shrink-0 text-[var(--muted)]" strokeWidth={1.5} aria-hidden="true" />
               {isRenaming ? (
                 <RenameInput
                   initialName={entry.name}

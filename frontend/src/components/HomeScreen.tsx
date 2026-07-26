@@ -42,7 +42,7 @@ export function HomeScreen({ pinned, onNavigate, onOpenRecent }: HomeScreenProps
                 onClick={() => onNavigate(path)}
                 className="flex flex-col items-center gap-2 rounded-[var(--radius)] p-3 text-center transition-colors duration-150 hover:bg-[var(--surface)]"
               >
-                <Folder size={32} strokeWidth={1.5} className="text-[var(--accent)]" />
+                <Folder size={32} strokeWidth={1.5} className="text-[var(--accent)]" aria-hidden="true" />
                 <span className="w-full truncate text-xs">{nameOf(path)}</span>
               </button>
             ))}
@@ -67,7 +67,7 @@ export function HomeScreen({ pinned, onNavigate, onOpenRecent }: HomeScreenProps
                   onClick={() => onOpenRecent(entry)}
                   className="flex h-10 items-center gap-3 rounded-[var(--radius)] px-2 text-left text-sm transition-colors duration-150 hover:bg-[var(--surface)]"
                 >
-                  <Icon size={16} className="shrink-0 text-[var(--muted)]" strokeWidth={1.5} />
+                  <Icon size={16} className="shrink-0 text-[var(--muted)]" strokeWidth={1.5} aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate">{entry.name}</span>
                   <span className="shrink-0 text-xs text-[var(--muted)]">
                     {formatRelativeTime(entry.lastAccess)}

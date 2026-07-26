@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { codeLanguageOf, previewKindOf } from '../lib/previewKind'
 import { previewUrl } from '../lib/previewUrl'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 
 interface PreviewEntry {
   name: string
@@ -31,6 +32,7 @@ export function PreviewOverlay({ entry, onClose, onPrev, onNext }: PreviewOverla
   const kind = previewKindOf(entry.name)
   const url = previewUrl(entry.path)
   const [text, setText] = useState<TextState>({ status: 'loading' })
+  const containerRef = useFocusTrap<HTMLDivElement>()
 
   useEffect(() => {
     if (kind !== 'text' && kind !== 'code') return
@@ -86,7 +88,15 @@ export function PreviewOverlay({ entry, onClose, onPrev, onNext }: PreviewOverla
   }, [onClose, onPrev, onNext])
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/90" onClick={onClose}>
+    <div
+      ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={entry.name}
+      tabIndex={-1}
+      className="fixed inset-0 z-50 flex flex-col bg-black/90"
+      onClick={onClose}
+    >
       <div className="flex h-12 shrink-0 items-center justify-between px-4 text-sm text-white/80">
         <span className="truncate">{entry.name}</span>
         <button
@@ -95,7 +105,7 @@ export function PreviewOverlay({ entry, onClose, onPrev, onNext }: PreviewOverla
           aria-label="Close preview"
           className="rounded p-1 hover:bg-white/10"
         >
-          <X size={18} />
+          <X size={18} aria-hidden="true" />
         </button>
       </div>
 
@@ -110,7 +120,10 @@ export function PreviewOverlay({ entry, onClose, onPrev, onNext }: PreviewOverla
         {kind === 'audio' && <audio src={url} controls className="w-full max-w-xl" />}
         {kind === 'pdf' && <iframe src={url} title={entry.name} className="h-full w-full bg-white" />}
         {(kind === 'text' || kind === 'code') && (
-          <div className="h-full w-full max-w-4xl overflow-auto rounded-[var(--radius)] bg-[#0d1117] p-4 text-sm text-white/90">
+          <div
+            role="status"
+            className="h-full w-full max-w-4xl overflow-auto rounded-[var(--radius)] bg-[#0d1117] p-4 text-sm text-white/90"
+          >
             {text.status === 'loading' && <p>Loading…</p>}
             {text.status === 'too-large' && <p>File is too large to preview.</p>}
             {text.status === 'error' && <p>Couldn't load this file: {text.message}</p>}

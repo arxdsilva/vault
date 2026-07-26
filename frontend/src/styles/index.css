@@ -73,3 +73,24 @@ a,
 ::selection {
   background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
+
+/* Unlayered (Tailwind's own rules all live in @layer utilities/base/etc, so
+   this wins over every per-element `outline-none` utility without having to
+   touch each component — see docs/STATUS.md's accessibility notes). Every
+   focusable control in the app previously had no visible focus indicator at
+   all for keyboard users. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

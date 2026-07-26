@@ -23,11 +23,19 @@ function parentOf(path: string): string {
   return i <= 0 ? '/' : path.slice(0, i)
 }
 
+function optionId(index: number): string {
+  return `search-result-${index}`
+}
+
 // Search results (spec §5.2): name, dimmed parent path, file-type icon.
 // Enter opens; Cmd/Ctrl+Enter reveals the result's parent folder in-app.
 // Virtualized (spec §2.3/§4.3) since the result set can now run into the
 // hundreds (core.Search's scopeDir needs a generous limit to guarantee the
-// current folder isn't crowded out — see hooks/useSearch.ts).
+// current folder isn't crowded out — see hooks/useSearch.ts). Exposed as a
+// listbox (role="listbox"/"option", aria-selected) so a screen reader can
+// tell which result is active — note only the currently-mounted (virtualized)
+// rows carry these attributes at any moment, a known limitation of pairing
+// virtualization with full list semantics (see docs/STATUS.md).
 export function SearchResults({
   results,
   statusLabel,
@@ -89,8 +97,8 @@ export function SearchResults({
 
   if (results.length === 0 && !statusLabel) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--muted)]">
-        <SearchX size={28} strokeWidth={1.5} />
+      <div role="status" className="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--muted)]">
+        <SearchX size={28} strokeWidth={1.5} aria-hidden="true" />
         <p className="text-sm">No matches.</p>
       </div>
     )
@@ -99,11 +107,21 @@ export function SearchResults({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {statusLabel && (
-        <div className="shrink-0 border-b border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)]">
+        <div
+          role="status"
+          className="shrink-0 border-b border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)]"
+        >
           {statusLabel}
         </div>
       )}
-      <div ref={parentRef} className="min-h-0 flex-1 overflow-y-auto">
+      <div
+        ref={parentRef}
+        role="listbox"
+        aria-label="Search results"
+        tabIndex={0}
+        aria-activedescendant={results[selected] ? optionId(selected) : undefined}
+        className="min-h-0 flex-1 overflow-y-auto outline-none"
+      >
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
           {virtualizer.getVirtualItems().map((row) => {
             const entry = results[row.index]
@@ -112,6 +130,11 @@ export function SearchResults({
             return (
               <div
                 key={entry.path}
+                id={optionId(row.index)}
+                role="option"
+                aria-selected={row.index === selected}
+                aria-setsize={results.length}
+                aria-posinset={row.index + 1}
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -130,7 +153,7 @@ export function SearchResults({
                   row.index === selected ? 'bg-[var(--accent)]/15' : 'hover:bg-[var(--surface)]'
                 }`}
               >
-                <Icon size={16} className="shrink-0 text-[var(--muted)]" strokeWidth={1.5} />
+                <Icon size={16} className="shrink-0 text-[var(--muted)]" strokeWidth={1.5} aria-hidden="true" />
                 {isRenaming ? (
                   <RenameInput
                     initialName={entry.name}

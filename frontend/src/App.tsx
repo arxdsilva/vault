@@ -132,6 +132,15 @@ function App() {
         setRenamingPath(selectedEntry.path)
         return
       }
+      // Keyboard-only equivalent of right-click (spec: keyboard-first) — the
+      // Menu key, or Shift+F10 on hardware without one. No mouse position to
+      // anchor to, so it opens near wherever focus currently is.
+      if ((e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) && selectedEntry && !contextMenu) {
+        e.preventDefault()
+        const rect = (document.activeElement as HTMLElement | null)?.getBoundingClientRect()
+        setContextMenu({ x: rect ? rect.left + 24 : 120, y: rect ? rect.top + 24 : 120 })
+        return
+      }
       if (
         e.key === ' ' &&
         !previewPath &&
@@ -253,6 +262,7 @@ function App() {
         <div className="relative flex-1">
           <Search
             size={16}
+            aria-hidden="true"
             className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--muted)]"
           />
           <input
@@ -262,6 +272,7 @@ function App() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleSearchKeyDown}
             placeholder="Search Vault"
+            aria-label="Search Vault"
             className="h-9 w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] pl-9 pr-3 text-sm outline-none transition-colors duration-150 focus:border-[var(--accent)]"
           />
         </div>
@@ -269,23 +280,25 @@ function App() {
         <div className="flex items-center gap-1 rounded-[var(--radius)] border border-[var(--border)] p-0.5">
           <button
             type="button"
+            aria-label="List view"
             aria-pressed={view === 'list'}
             onClick={() => setView('list')}
             className={`rounded-[calc(var(--radius)-2px)] p-1.5 transition-colors duration-150 ${
               view === 'list' ? 'bg-[var(--surface)] text-[var(--fg)]' : 'text-[var(--muted)]'
             }`}
           >
-            <List size={16} />
+            <List size={16} aria-hidden="true" />
           </button>
           <button
             type="button"
+            aria-label="Grid view"
             aria-pressed={view === 'grid'}
             onClick={() => setView('grid')}
             className={`rounded-[calc(var(--radius)-2px)] p-1.5 transition-colors duration-150 ${
               view === 'grid' ? 'bg-[var(--surface)] text-[var(--fg)]' : 'text-[var(--muted)]'
             }`}
           >
-            <LayoutGrid size={16} />
+            <LayoutGrid size={16} aria-hidden="true" />
           </button>
         </div>
 
@@ -298,7 +311,7 @@ function App() {
             chatOpen ? 'text-[var(--fg)]' : 'text-[var(--muted)]'
           }`}
         >
-          <MessageCircle size={16} />
+          <MessageCircle size={16} aria-hidden="true" />
         </button>
 
         <button
@@ -310,7 +323,7 @@ function App() {
             settingsOpen ? 'text-[var(--fg)]' : 'text-[var(--muted)]'
           }`}
         >
-          <Settings size={16} />
+          <Settings size={16} aria-hidden="true" />
         </button>
       </div>
 
@@ -332,7 +345,13 @@ function App() {
 
       {/* Main area: pinned rail (48px, spec §4.3) + content + assistant. */}
       <div className="flex min-h-0 flex-1">
-        <PinnedRail pinned={pinned} onNavigate={navigate} onAdd={addPinned} onReorder={reorderPinned} />
+        <PinnedRail
+          pinned={pinned}
+          currentDir={currentDir}
+          onNavigate={navigate}
+          onAdd={addPinned}
+          onReorder={reorderPinned}
+        />
 
         <div className="flex min-w-0 flex-1 flex-col">
           {searching ? (
@@ -369,8 +388,11 @@ function App() {
               </div>
 
               {error ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--muted)]">
-                  <AlertCircle size={28} strokeWidth={1.5} />
+                <div
+                  role="alert"
+                  className="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--muted)]"
+                >
+                  <AlertCircle size={28} strokeWidth={1.5} aria-hidden="true" />
                   <p className="text-sm">Couldn't open this folder: {error}</p>
                 </div>
               ) : view === 'grid' ? (

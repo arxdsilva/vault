@@ -139,6 +139,55 @@ actually been visited**, not the whole home tree up front.
   user's home directory" framing, chosen because eager indexing was fundamentally unworkable
   against real home directories (huge folders, OS privacy gates) rather than a preference.
 
+### Accessibility: Phase A + B (spec §2 principle 6, §5.8)
+
+Audited the frontend cold — there was no accessibility layer at all beyond a few `aria-label`/
+`aria-pressed` attributes and one `role="alert"` toast; every custom widget was unstyled `<div>`s
+with no ARIA roles, no focus trapping, no live regions, and (the most impactful single gap) every
+focusable control had `outline-none` with no `:focus-visible` replacement, so keyboard users had no
+visible focus indicator anywhere in the app. Fixed in two phases (a third, deeper phase — contrast
+tuning, `prefers-contrast`, adjustable text size, keyboard alternatives to drag-and-drop — is
+deliberately deferred, not done here):
+
+- **Phase A (foundational, mechanical):** a single unlayered `:focus-visible` rule in
+  `frontend/src/styles/index.css` gives every focusable element a visible ring without having to
+  touch each component (Tailwind's utilities, including every `outline-none`, live in `@layer` and
+  lose to unlayered rules regardless of source order or specificity — confirmed this is why one CSS
+  rule was enough). Also: a `prefers-reduced-motion: reduce` kill-switch (same file); `aria-hidden`
+  on decorative `lucide-react` icons across every component; missing `aria-label`s filled in (view
+  toggles, breadcrumb Home button); real accessible names on the search/chat/rename/palette-filter
+  inputs, which previously relied on the placeholder-as-label anti-pattern; `aria-current` on the
+  active breadcrumb segment and the pinned-rail item matching the browsed folder; `aria-live`
+  (`role="status"`/`role="log"`) on search status, loading states, and the chat transcript.
+- **Phase B (composite widget semantics):** `frontend/src/hooks/useFocusTrap.ts` (new) is a shared
+  hook — move focus in on mount, trap Tab/Shift+Tab, restore focus to the trigger on unmount — used
+  by `CommandPalette`, `ContextMenu`, `SettingsPanel`, and `PreviewOverlay` so the pattern is
+  implemented once rather than four times. `CommandPalette` is now `role="dialog"` containing a
+  `role="combobox"` input + `role="listbox"` results with `aria-activedescendant`. `ContextMenu` is
+  `role="menu"`/`menuitem` with real roving focus (arrow keys move actual DOM focus, not just a
+  highlight) and gained a keyboard trigger (Menu key / Shift+F10) it never had before — previously
+  right-click was the *only* way to open it. `SettingsPanel`/`PreviewOverlay` are `role="dialog"`
+  with Escape-to-close (Settings didn't have this before at all). `FileList`/`GridView`/
+  `SearchResults` are `role="listbox"`/`option` with `aria-selected`/`aria-setsize`/`aria-posinset`.
+- **Stated residual limitations:**
+  - The listbox `aria-activedescendant` pattern requires the *container* to hold real DOM focus for
+    the activedescendant relationship to be meaningful per spec, but the search input in `App.tsx`
+    keeps focus while typing (by design — spec §5.1) rather than the results listbox. The
+    `role="option"`/`aria-selected` markup is real and correct, but the live "here's what's
+    highlighted" screen-reader announcement on arrow-key movement isn't as strong as a fully-wired
+    combobox would give. Rearchitecting the search-input/results coupling to fix this properly is
+    deferred (Phase C-adjacent).
+  - Virtualization (`@tanstack/react-virtual`, all three lists) means only the currently-mounted
+    rows carry `role="option"`/`aria-posinset` at any moment — a screen reader can't browse-mode
+    through the full off-screen result set. Inherent to pairing virtualization with full ARIA list
+    semantics; not solved here.
+  - No automated tests for `useFocusTrap` or the dialog/menu ARIA wiring — this codebase has zero
+    React component-rendering tests anywhere (no `@testing-library/react` dependency; existing
+    frontend tests are hooks/stores/pure-logic only), so this follows existing precedent rather than
+    introducing a new test pattern unilaterally. Needs a manual `make dev` pass: Tab through the
+    whole app checking focus rings, open/close each overlay checking focus returns correctly, and
+    ideally a real screen reader (VoiceOver) smoke test.
+
 ### Known limitations / follow-ups
 
 - **Windows adapter is unverified at runtime.** `internal/platform/windows` (Recycle Bin via
