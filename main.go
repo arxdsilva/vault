@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/asilva/vault/internal/platform"
 	"github.com/asilva/vault/internal/service"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/services/fileserver"
@@ -26,7 +27,7 @@ func main() {
 		},
 	})
 
-	app.RegisterService(application.NewService(service.New(newTrasher(), app.Event)))
+	app.RegisterService(application.NewService(service.New(platform.NewTrasher(), app.Event)))
 
 	home, err := os.UserHomeDir()
 	if err != nil {

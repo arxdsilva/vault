@@ -11,4 +11,11 @@ export default defineConfig({
     strictPort: true,
   },
   plugins: [react(), tailwindcss(), wails("./bindings")],
+  test: {
+    environment: "jsdom",
+    // Node 22+'s built-in (experimental) localStorage global shadows
+    // jsdom's own implementation with a non-functional stub; disable it so
+    // tests get jsdom's working localStorage instead.
+    execArgv: ["--no-experimental-webstorage"],
+  },
 });

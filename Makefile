@@ -1,7 +1,7 @@
 .PHONY: help \
 	backend backend-build backend-vet backend-test backend-lint backend-windows \
 	frontend frontend-install frontend-typecheck frontend-test frontend-build \
-	test dev run package clean
+	test dev run package clean mcp-build
 
 help:
 	@echo "Backend (Go):"
@@ -11,6 +11,7 @@ help:
 	@echo "  make backend-test       - go test -race -cover ./..."
 	@echo "  make backend-lint       - golangci-lint run (if installed)"
 	@echo "  make backend-windows    - cross-compile check (GOOS=windows)"
+	@echo "  make mcp-build          - build the vault-mcp server (bin/vault-mcp)"
 	@echo ""
 	@echo "Frontend (React/TS):"
 	@echo "  make frontend           - install + typecheck + test + build"
@@ -46,6 +47,9 @@ backend-lint:
 backend-windows:
 	GOOS=windows GOARCH=amd64 go build ./...
 	GOOS=windows GOARCH=amd64 go vet ./...
+
+mcp-build:
+	go build -o bin/vault-mcp ./cmd/vault-mcp
 
 ## Frontend (React/TS) ########################################################
 
