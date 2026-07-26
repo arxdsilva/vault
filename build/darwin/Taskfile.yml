@@ -141,6 +141,10 @@ tasks:
       STAGE_DIR: "{{.BIN_DIR}}/dmg-stage"
       TEMP_DMG: "{{.BIN_DIR}}/{{.APP_NAME}}-temp.dmg"
     cmds:
+      # Guard against a volume named "{{.APP_NAME}}" already being mounted (e.g. a previous
+      # build's .dmg left open) — otherwise this run's temp volume gets Finder-suffixed
+      # ("{{.APP_NAME}} 1") and the AppleScript layout below silently targets the stale one.
+      - test -d "/Volumes/{{.APP_NAME}}" && hdiutil detach "/Volumes/{{.APP_NAME}}" -force || true
       - rm -f "{{.BIN_DIR}}/{{.APP_NAME}}.dmg" "{{.TEMP_DMG}}"
       - rm -rf "{{.STAGE_DIR}}"
       - mkdir -p "{{.STAGE_DIR}}/.background"
