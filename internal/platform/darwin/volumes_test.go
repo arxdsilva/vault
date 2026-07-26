@@ -11,7 +11,7 @@ import (
 )
 
 func TestVolumesList(t *testing.T) {
-	t.Run("lists real mount directories, skipping the boot volume symlink and dotfiles", func(t *testing.T) {
+	t.Run("lists real mount directories and the boot volume, skipping dotfiles", func(t *testing.T) {
 		root := t.TempDir()
 		if err := os.Mkdir(filepath.Join(root, "USB Drive"), 0o755); err != nil {
 			t.Fatalf("Mkdir: %v", err)
@@ -27,20 +27,53 @@ func TestVolumesList(t *testing.T) {
 		if err != nil {
 			t.Fatalf("List: %v", err)
 		}
-		if len(vols) != 1 {
-			t.Fatalf("List returned %d volumes, want 1: %+v", len(vols), vols)
+		if len(vols) != 2 {
+			t.Fatalf("List returned %d volumes, want 2: %+v", len(vols), vols)
 		}
-		if vols[0].Name != "USB Drive" {
-			t.Errorf("Name = %q, want %q", vols[0].Name, "USB Drive")
+
+		// Sorted by name: "Macintosh HD" before "USB Drive".
+		boot, usb := vols[0], vols[1]
+
+		if boot.Name != "Macintosh HD" {
+			t.Errorf("Name = %q, want %q", boot.Name, "Macintosh HD")
 		}
-		if vols[0].Path != filepath.Join(root, "USB Drive") {
-			t.Errorf("Path = %q, want %q", vols[0].Path, filepath.Join(root, "USB Drive"))
+		if boot.Path != filepath.Join(root, "Macintosh HD") {
+			t.Errorf("Path = %q, want %q", boot.Path, filepath.Join(root, "Macintosh HD"))
 		}
-		if !vols[0].Ejectable {
-			t.Error("Ejectable = false, want true")
+		if boot.Ejectable {
+			t.Error("boot volume Ejectable = true, want false")
 		}
-		if vols[0].TotalBytes == 0 {
-			t.Error("TotalBytes = 0, want a real filesystem size")
+		if boot.TotalBytes == 0 {
+			t.Error("boot volume TotalBytes = 0, want a real filesystem size")
+		}
+
+		if usb.Name != "USB Drive" {
+			t.Errorf("Name = %q, want %q", usb.Name, "USB Drive")
+		}
+		if usb.Path != filepath.Join(root, "USB Drive") {
+			t.Errorf("Path = %q, want %q", usb.Path, filepath.Join(root, "USB Drive"))
+		}
+		if !usb.Ejectable {
+			t.Error("USB Drive Ejectable = false, want true")
+		}
+		if usb.TotalBytes == 0 {
+			t.Error("USB Drive TotalBytes = 0, want a real filesystem size")
+		}
+	})
+
+	t.Run("skips a symlink that isn't the boot volume", func(t *testing.T) {
+		root := t.TempDir()
+		other := t.TempDir()
+		if err := os.Symlink(other, filepath.Join(root, "Not Boot")); err != nil {
+			t.Fatalf("Symlink: %v", err)
+		}
+
+		vols, err := (&Volumes{Root: root}).List()
+		if err != nil {
+			t.Fatalf("List: %v", err)
+		}
+		if len(vols) != 0 {
+			t.Fatalf("List returned %d volumes, want 0: %+v", len(vols), vols)
 		}
 	})
 

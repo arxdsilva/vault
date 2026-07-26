@@ -59,3 +59,29 @@ describe('useSettings shortcutHelperEnabled', () => {
     expect(localStorage.getItem('vault:shortcutHelper')).toBe('true')
   })
 })
+
+describe('useSettings showHiddenFiles', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    useSettings.setState({ showHiddenFiles: false })
+  })
+
+  it('defaults to disabled (dotfiles hidden)', () => {
+    expect(useSettings.getState().showHiddenFiles).toBe(false)
+  })
+
+  it('setShowHiddenFiles(true) updates state and persists to localStorage', () => {
+    useSettings.getState().setShowHiddenFiles(true)
+
+    expect(useSettings.getState().showHiddenFiles).toBe(true)
+    expect(localStorage.getItem('vault:showHiddenFiles')).toBe('true')
+  })
+
+  it('setShowHiddenFiles(false) updates state and persists to localStorage', () => {
+    useSettings.getState().setShowHiddenFiles(true)
+    useSettings.getState().setShowHiddenFiles(false)
+
+    expect(useSettings.getState().showHiddenFiles).toBe(false)
+    expect(localStorage.getItem('vault:showHiddenFiles')).toBe('false')
+  })
+})

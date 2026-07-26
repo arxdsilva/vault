@@ -10,6 +10,8 @@ interface SettingsPanelProps {
   onSelectTheme: (theme: Theme) => void
   shortcutHelperEnabled: boolean
   onSelectShortcutHelperEnabled: (enabled: boolean) => void
+  showHiddenFiles: boolean
+  onSelectShowHiddenFiles: (show: boolean) => void
   onShowShortcuts: () => void
   provider: Provider
   onSelectProvider: (provider: Provider) => void
@@ -41,6 +43,8 @@ export function SettingsPanel({
   onSelectTheme,
   shortcutHelperEnabled,
   onSelectShortcutHelperEnabled,
+  showHiddenFiles,
+  onSelectShowHiddenFiles,
   onShowShortcuts,
   provider,
   onSelectProvider,
@@ -113,6 +117,30 @@ export function SettingsPanel({
                 {accent === preset.value && <Check size={14} className="text-white" strokeWidth={3} aria-hidden="true" />}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xs font-medium tracking-wide text-[var(--muted)] uppercase">Files</h2>
+          <div className="flex items-center justify-between gap-2 text-xs text-[var(--muted)]">
+            <span>Show hidden files</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showHiddenFiles}
+              aria-label="Show hidden files"
+              onClick={() => onSelectShowHiddenFiles(!showHiddenFiles)}
+              className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-150 ${
+                showHiddenFiles ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform duration-150 ${
+                  showHiddenFiles ? 'translate-x-[18px]' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
           </div>
         </div>
 

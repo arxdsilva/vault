@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { filterHiddenEntries } from '../lib/hiddenFiles'
 import { vault, type Entry } from '../lib/vault'
 import type { SortKey } from '../store/navigation'
 
@@ -25,7 +26,7 @@ function extOf(name: string): string {
 // Also feeds dir into the search index (spec §5.2 follow-up): search only
 // covers directories that have actually been browsed to, not the whole home
 // tree up front, so every directory this hook loads is also visited.
-export function useDirectory(dir: string | null, sort: SortKey): DirectoryState {
+export function useDirectory(dir: string | null, sort: SortKey, showHidden: boolean): DirectoryState {
   const [state, setState] = useState<DirectoryState>({ entries: [], loading: false, error: null })
 
   useEffect(() => {
@@ -67,7 +68,7 @@ export function useDirectory(dir: string | null, sort: SortKey): DirectoryState 
     }
   }, [dir])
 
-  const sorted = [...state.entries].sort((a, b) => {
+  const sorted = [...filterHiddenEntries(state.entries, showHidden)].sort((a, b) => {
     if (a.isDir !== b.isDir) return a.isDir ? -1 : 1
     return comparators[sort](a, b)
   })

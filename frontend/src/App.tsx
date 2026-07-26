@@ -42,12 +42,21 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
-  const { accent, setAccent, theme, setTheme, shortcutHelperEnabled, setShortcutHelperEnabled } = useSettings()
+  const {
+    accent,
+    setAccent,
+    theme,
+    setTheme,
+    shortcutHelperEnabled,
+    setShortcutHelperEnabled,
+    showHiddenFiles,
+    setShowHiddenFiles,
+  } = useSettings()
   const { provider, apiKey, model, setProvider, setApiKey, setModel } = useChat()
   const searchRef = useRef<HTMLInputElement | null>(null)
   const { currentDir, navigate, parentOf, sortFor, setSort } = useNavigation()
   const sort = currentDir ? sortFor(currentDir) : 'name'
-  const { entries, error } = useDirectory(currentDir, sort)
+  const { entries, error } = useDirectory(currentDir, sort, showHiddenFiles)
   const { results: searchResults, label: searchStatusLabel } = useSearch(query, currentDir)
   const searching = query.trim() !== ''
   const { pinned, add: addPinned, remove: removePinned, reorder: reorderPinned } = usePinned()
@@ -379,6 +388,8 @@ function App() {
           onSelectTheme={setTheme}
           shortcutHelperEnabled={shortcutHelperEnabled}
           onSelectShortcutHelperEnabled={setShortcutHelperEnabled}
+          showHiddenFiles={showHiddenFiles}
+          onSelectShowHiddenFiles={setShowHiddenFiles}
           onShowShortcuts={() => {
             setSettingsOpen(false)
             setHelpOpen(true)

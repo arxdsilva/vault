@@ -57,6 +57,14 @@ const HELPER_STORAGE_KEY = 'vault:shortcutHelper'
 const storedHelperRaw = localStorage.getItem(HELPER_STORAGE_KEY)
 const storedHelperEnabled = storedHelperRaw !== 'false'
 
+// Files/folders starting with "." (spec: Unix/Finder hidden-file
+// convention) are hidden from directory listings by default, toggleable
+// here. Defaults off — "false" is the only string that opts in raw, so
+// anything else (including no stored value) stays hidden-by-default.
+const SHOW_HIDDEN_STORAGE_KEY = 'vault:showHiddenFiles'
+const storedShowHiddenRaw = localStorage.getItem(SHOW_HIDDEN_STORAGE_KEY)
+const storedShowHidden = storedShowHiddenRaw === 'true'
+
 interface SettingsState {
   accent: string
   setAccent: (value: string) => void
@@ -64,6 +72,8 @@ interface SettingsState {
   setTheme: (theme: Theme) => void
   shortcutHelperEnabled: boolean
   setShortcutHelperEnabled: (enabled: boolean) => void
+  showHiddenFiles: boolean
+  setShowHiddenFiles: (show: boolean) => void
 }
 
 export const useSettings = create<SettingsState>((set) => ({
@@ -83,5 +93,10 @@ export const useSettings = create<SettingsState>((set) => ({
   setShortcutHelperEnabled: (enabled) => {
     localStorage.setItem(HELPER_STORAGE_KEY, String(enabled))
     set({ shortcutHelperEnabled: enabled })
+  },
+  showHiddenFiles: storedShowHidden,
+  setShowHiddenFiles: (show) => {
+    localStorage.setItem(SHOW_HIDDEN_STORAGE_KEY, String(show))
+    set({ showHiddenFiles: show })
   },
 }))

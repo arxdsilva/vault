@@ -66,8 +66,9 @@ func (v *Volumes) runner() func(string, ...string) ([]byte, error) {
 	}
 }
 
-// List returns every mounted drive letter except the system drive, which
-// is already reachable via the user's home directory.
+// List returns every visible drive letter, including the system drive
+// (shown but not ejectable, since it can't be unmounted while running
+// from it).
 func (v *Volumes) List() ([]core.Volume, error) {
 	mask, _, _ := procGetLogicalDrives.Call()
 	if mask == 0 {
@@ -81,9 +82,6 @@ func (v *Volumes) List() ([]core.Volume, error) {
 			continue
 		}
 		drive := string(rune('A'+i)) + ":"
-		if strings.EqualFold(drive, sysDrive) {
-			continue
-		}
 		root := drive + `\`
 
 		driveType, _, _ := procGetDriveType.Call(strPtr(root))
@@ -109,7 +107,7 @@ func (v *Volumes) List() ([]core.Volume, error) {
 		volumes = append(volumes, core.Volume{
 			Path:       root,
 			Name:       name,
-			Ejectable:  true,
+			Ejectable:  !strings.EqualFold(drive, sysDrive),
 			TotalBytes: total,
 			FreeBytes:  free,
 		})
