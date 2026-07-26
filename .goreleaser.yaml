@@ -1,0 +1,39 @@
+# Vault is a Wails v3 desktop app: it needs CGO and a native webview
+# (WebKit.framework, WebView2, WebKitGTK) per OS, so it's built and packaged
+# natively on each platform via the project's own Taskfile — see
+# .github/workflows/release.yml, which stages the resulting .dmg/.exe
+# installer/AppImage/.deb/.rpm under release-assets/ before this file runs.
+# goreleaser's job here is just to turn those into a GitHub Release with a
+# changelog and checksums, not to build Go binaries itself.
+version: 2
+
+project_name: vault
+
+builds:
+  - skip: true
+archives: []
+
+checksum:
+  name_template: "checksums.txt"
+  extra_files:
+    - glob: release-assets/*
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^test:"
+      - "^chore:"
+      - "^docs:"
+
+release:
+  extra_files:
+    - glob: release-assets/*
+  header: |
+    ## Vault {{ .Tag }}
+
+    | Platform | Download |
+    |----------|----------|
+    | macOS (Intel + Apple Silicon) | `vault_{{ .Tag }}_darwin_universal.dmg` |
+    | Windows (x64) | `vault_{{ .Tag }}_windows_amd64-installer.exe` |
+    | Linux (x64) | `vault_{{ .Tag }}_linux_amd64.AppImage` / `.deb` / `.rpm` |

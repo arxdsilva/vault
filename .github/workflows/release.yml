@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  # Vault is a Wails v3 desktop app: it needs CGO and a native webview
+  # (WebKit.framework / WebView2 / WebKitGTK) per OS, so each platform is
+  # built and packaged natively via the project's own Taskfile (see
+  # build/*/Taskfile.yml) rather than goreleaser's Go builder. This job
+  # produces one installer per OS and stages it under release-assets/;
+  # the release job below hands those to goreleaser for the GitHub Release.
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: darwin
+          - os: windows-latest
+            platform: windows
+          - os: ubuntu-latest
+            platform: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install wails3 CLI (pinned to go.mod's wails version)
+        shell: bash
+        run: |
+          WAILS_VERSION=$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)
+          go install "github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      # GTK4 + WebKitGTK 6.0 dev headers, matching build/linux/nfpm/nfpm.yaml's
+      # runtime dependency stack (Ubuntu 24.04+/Debian 13+).
+      - name: Install Linux build dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
+
+      # NSIS isn't preinstalled on windows-latest; build/windows/Taskfile.yml's
+      # installer task shells out to makensis.
+      - name: Install NSIS
+        if: matrix.platform == 'windows'
+        run: choco install nsis -y
+
+      - name: Package (macOS universal .dmg)
+        if: matrix.platform == 'darwin'
+        shell: bash
+        run: |
+          wails3 task darwin:package:universal
+          wails3 task darwin:create:dmg
+          mkdir -p release-assets
+          cp bin/vault.dmg "release-assets/vault_${GITHUB_REF_NAME}_darwin_universal.dmg"
+
+      - name: Package (Windows NSIS installer)
+        if: matrix.platform == 'windows'
+        shell: bash
+        run: |
+          wails3 task windows:package
+          mkdir -p release-assets
+          cp build/windows/nsis/vault-amd64-installer.exe "release-assets/vault_${GITHUB_REF_NAME}_windows_amd64-installer.exe"
+
+      - name: Package (Linux AppImage/.deb/.rpm)
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          wails3 task linux:package
+          mkdir -p release-assets
+          cp bin/*.AppImage "release-assets/vault_${GITHUB_REF_NAME}_linux_amd64.AppImage"
+          cp bin/*.deb "release-assets/vault_${GITHUB_REF_NAME}_linux_amd64.deb"
+          cp bin/*.rpm "release-assets/vault_${GITHUB_REF_NAME}_linux_amd64.rpm"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-${{ matrix.platform }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: release-assets-*
+          merge-multiple: true
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
