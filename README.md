@@ -124,6 +124,19 @@ Click the assistant icon in the top bar, then set a provider (Claude or ChatGPT)
 Settings. The key is stored locally in the browser's `localStorage` — see `docs/STATUS.md` for the
 plaintext-storage caveat.
 
+## Performance
+
+Measured against the four targets in `docs/SPEC.md` §8 — cold start, search latency at 200k
+files, scroll at 50k entries, idle RAM — on an Apple M3 Pro, production build:
+
+![Vault performance results](docs/ss-vault-performance.svg)
+
+Three of four comfortably clear their target; search latency mostly does, with one worst-case
+gap (a broad query, scoped to a folder, matching every entry) — see
+[`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) for the full numbers, the caveat, and exactly how
+each figure was produced (all reproducible: a committed Go benchmark plus three manual
+procedures).
+
 ## Status
 
 All ten build-order steps (including AI integration) are implemented and validated. See
