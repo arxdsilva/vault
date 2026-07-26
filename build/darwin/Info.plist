@@ -25,5 +25,15 @@
             <string>true</string>
         <key>NSHumanReadableCopyright</key>
             <string>© 2026, My Company</string>
+        <key>NSDesktopFolderUsageDescription</key>
+            <string>Vault needs access to Desktop to list and manage its files, like Finder.</string>
+        <key>NSDocumentsFolderUsageDescription</key>
+            <string>Vault needs access to Documents to list and manage its files, like Finder.</string>
+        <key>NSDownloadsFolderUsageDescription</key>
+            <string>Vault needs access to Downloads to list and manage its files, like Finder.</string>
+        <key>NSRemovableVolumesUsageDescription</key>
+            <string>Vault needs access to external drives to list and manage their files, like Finder.</string>
+        <key>NSNetworkVolumesUsageDescription</key>
+            <string>Vault needs access to network shares to list and manage their files, like Finder.</string>
     </dict>
 </plist>

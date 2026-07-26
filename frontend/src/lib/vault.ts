@@ -2,6 +2,7 @@ import * as Files from '../../bindings/github.com/asilva/vault/internal/service/
 import * as SearchService from '../../bindings/github.com/asilva/vault/internal/service/search'
 import * as PinnedService from '../../bindings/github.com/asilva/vault/internal/service/pinned'
 import * as VolumesService from '../../bindings/github.com/asilva/vault/internal/service/volumes'
+import * as PermissionsService from '../../bindings/github.com/asilva/vault/internal/service/permissions'
 import { Clipboard, Events } from '@wailsio/runtime'
 
 export interface Entry {
@@ -37,6 +38,10 @@ export interface Volume {
   ejectable: boolean
   totalBytes: number
   freeBytes: number
+}
+
+export interface PermissionStatus {
+  granted: boolean
 }
 
 const FS_CHANGE_EVENT = 'vault:fschange'
@@ -92,4 +97,7 @@ export const vault = {
   onVolumesChange(handler: () => void): () => void {
     return Events.On(VOLUMES_CHANGE_EVENT, () => handler())
   },
+
+  permissionStatus: () => PermissionsService.Status() as unknown as Promise<PermissionStatus>,
+  openPermissionSettings: () => PermissionsService.OpenSettings(),
 }

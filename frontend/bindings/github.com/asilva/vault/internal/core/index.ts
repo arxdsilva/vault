@@ -4,5 +4,6 @@
 export type {
     Entry,
     IndexEntry,
+    PermissionStatus,
     Volume
 } from "./models.js";

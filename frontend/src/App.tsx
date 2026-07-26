@@ -7,6 +7,7 @@ import { ContextMenu } from './components/ContextMenu'
 import { FileList } from './components/FileList'
 import { GridView } from './components/GridView'
 import { HomeScreen } from './components/HomeScreen'
+import { PermissionPrompt } from './components/PermissionPrompt'
 import { PinnedRail } from './components/PinnedRail'
 import { PreviewOverlay } from './components/PreviewOverlay'
 import { PropertiesDialog } from './components/PropertiesDialog'
@@ -15,6 +16,7 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { ShortcutHelp } from './components/ShortcutHelp'
 import { Toast } from './components/Toast'
 import { useDirectory } from './hooks/useDirectory'
+import { usePermissionPrompt } from './hooks/usePermissionPrompt'
 import { usePinned } from './hooks/usePinned'
 import { useSearch } from './hooks/useSearch'
 import { useVolumes } from './hooks/useVolumes'
@@ -44,6 +46,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const permissionPrompt = usePermissionPrompt()
   const {
     accent,
     setAccent,
@@ -546,6 +549,10 @@ function App() {
       {propertiesPath && <PropertiesDialog path={propertiesPath} onClose={() => setPropertiesPath(null)} />}
 
       {helpOpen && <ShortcutHelp onClose={() => setHelpOpen(false)} />}
+
+      {permissionPrompt.visible && (
+        <PermissionPrompt onOpenSettings={permissionPrompt.openSettings} onDismiss={permissionPrompt.dismiss} />
+      )}
 
       <Toast />
     </div>
