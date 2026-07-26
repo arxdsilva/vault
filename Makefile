@@ -1,7 +1,7 @@
 .PHONY: help \
 	backend backend-build backend-vet backend-test backend-lint backend-windows \
 	frontend frontend-install frontend-typecheck frontend-test frontend-build \
-	test dev run package clean mcp-build
+	test dev run package installer clean mcp-build
 
 help:
 	@echo "Backend (Go):"
@@ -25,6 +25,7 @@ help:
 	@echo "  make dev                - wails3 dev"
 	@echo "  make run                - build the native app and open it (no browser)"
 	@echo "  make package            - wails3 package (see also: wails3 task package:dmg)"
+	@echo "  make installer          - build the native installer for the host OS (.dmg/.exe/.AppImage+.deb+.rpm)"
 	@echo "  make clean              - remove build artifacts"
 
 ## Backend (Go) ##############################################################
@@ -79,6 +80,17 @@ run:
 
 package:
 	wails3 package
+
+# Builds a real installer, not just the raw binary/.app:
+# macOS -> bin/vault.dmg, Linux -> bin/*.AppImage + *.deb + *.rpm, Windows -> NSIS .exe
+# (requires makensis on PATH; see build/windows/nsis/project.nsi).
+installer:
+	@case "$$(uname -s)" in \
+		Darwin) wails3 task darwin:package:universal && wails3 task darwin:create:dmg ;; \
+		Linux) wails3 task linux:package ;; \
+		MINGW*|MSYS*|CYGWIN*) wails3 task windows:package ;; \
+		*) echo "Unsupported host OS for installer build: $$(uname -s)"; exit 1 ;; \
+	esac
 
 clean:
 	rm -rf bin frontend/dist

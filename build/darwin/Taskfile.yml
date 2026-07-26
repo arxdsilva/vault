@@ -135,11 +135,57 @@ tasks:
       - task: create:dmg
 
   create:dmg:
-    summary: Wraps the `.app` bundle in a `.dmg` disk image via hdiutil (macOS only, no extra tooling required)
+    summary: Wraps the `.app` bundle in a `.dmg` with an Applications shortcut and drag-to-install arrow (macOS only, no extra tooling required)
     internal: true
+    vars:
+      STAGE_DIR: "{{.BIN_DIR}}/dmg-stage"
+      TEMP_DMG: "{{.BIN_DIR}}/{{.APP_NAME}}-temp.dmg"
     cmds:
-      - rm -f "{{.BIN_DIR}}/{{.APP_NAME}}.dmg"
-      - hdiutil create -volname "{{.APP_NAME}}" -srcfolder "{{.BIN_DIR}}/{{.APP_NAME}}.app" -ov -format UDZO "{{.BIN_DIR}}/{{.APP_NAME}}.dmg"
+      - rm -f "{{.BIN_DIR}}/{{.APP_NAME}}.dmg" "{{.TEMP_DMG}}"
+      - rm -rf "{{.STAGE_DIR}}"
+      - mkdir -p "{{.STAGE_DIR}}/.background"
+      - cp -R "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.STAGE_DIR}}/"
+      - ln -s /Applications "{{.STAGE_DIR}}/Applications"
+      - cp build/darwin/dmg/dmg-background.png "{{.STAGE_DIR}}/.background/background.png"
+      - cp build/darwin/dmg/dmg-background@2x.png "{{.STAGE_DIR}}/.background/background@2x.png"
+      - hdiutil create -volname "{{.APP_NAME}}" -srcfolder "{{.STAGE_DIR}}" -ov -fs HFS+ -format UDRW "{{.TEMP_DMG}}"
+      - task: layout:dmg
+      - hdiutil convert "{{.TEMP_DMG}}" -format UDZO -ov -o "{{.BIN_DIR}}/{{.APP_NAME}}.dmg"
+      - rm -f "{{.TEMP_DMG}}"
+      - rm -rf "{{.STAGE_DIR}}"
+
+  layout:dmg:
+    summary: Mounts the temp `.dmg` and arranges icons/background via Finder scripting
+    internal: true
+    vars:
+      TEMP_DMG: "{{.BIN_DIR}}/{{.APP_NAME}}-temp.dmg"
+    cmds:
+      - |
+        set -e
+        DEVICE=$(hdiutil attach -readwrite -noverify -noautoopen "{{.TEMP_DMG}}" | egrep '^/dev/' | sed 1q | awk '{print $1}')
+        trap 'hdiutil detach "$DEVICE" || true' EXIT
+        osascript <<EOF
+        tell application "Finder"
+          tell disk "{{.APP_NAME}}"
+            open
+            set current view of container window to icon view
+            set toolbar visible of container window to false
+            set statusbar visible of container window to false
+            set the bounds of container window to {200, 120, 860, 520}
+            set viewOptions to the icon view options of container window
+            set arrangement of viewOptions to not arranged
+            set icon size of viewOptions to 96
+            set background picture of viewOptions to file ".background:background.png"
+            set position of item "{{.APP_NAME}}.app" of container window to {180, 200}
+            set position of item "Applications" of container window to {480, 200}
+            close
+            open
+            update without registering applications
+            delay 1
+          end tell
+        end tell
+        EOF
+        sync
 
 
   create:app:bundle:
