@@ -12,14 +12,39 @@ functionally complete and validated (build/lint/test green), not merely started.
 - [x] 7. Quick preview overlay
 - [x] 8. Grid view, thumbnails, polish, empty states, error handling
 - [x] 9. Tests, packaging, README
+- [x] 10. AI integration: MCP server + embedded chat panel
 
 ## Notes
 
-All nine build-order steps are functionally complete and validated: `go build`/`go vet`/
+All nine original build-order steps are functionally complete and validated: `go build`/`go vet`/
 `go test -race -cover` green (87-89% coverage on `internal/core`, `internal/service`,
 `internal/platform/darwin`), frontend `tsc --noEmit`/`vite build`/`vitest run` green (37 tests),
 and a real `wails3 package` produced a working signed `bin/vault.app` plus `bin/vault.dmg` (via
 `task package:dmg`, `hdiutil`-based) on this macOS machine.
+
+### AI Integration (step 10)
+
+- **MCP server (`cmd/vault-mcp`, `internal/mcp`)** built on the official
+  `github.com/modelcontextprotocol/go-sdk`. 9 tools backed directly by `internal/core` (no Wails
+  dependency). `go build`/`go vet`/`go test -race -cover` green (80.9% coverage on `internal/mcp`);
+  manually smoke-tested end-to-end over stdio with a real MCP client against a scratch directory
+  (`list_directory` + `read_file` round-tripped correctly). The `--http` streamable-HTTP transport
+  is implemented but not exercised against a real ChatGPT/HTTP MCP client — that ecosystem doesn't
+  yet have a common way to point a general MCP-HTTP client at an arbitrary local server the way
+  Claude Desktop/Cursor do for stdio.
+- **Embedded chat panel** (`frontend/src/components/ChatPanel.tsx`, `lib/chatTools.ts`,
+  `lib/llmClient.ts`, `store/chat.ts`) supports Claude (Anthropic Messages API) and ChatGPT (OpenAI
+  Chat Completions API), both with the same 9-tool agentic loop. `tsc --noEmit`/`vitest run`/
+  `vite build` green (66 tests). Not verified against a real provider round-trip in this
+  environment — that needs the user's own API key; the tool-dispatch/UI logic is covered by mocked
+  tests, and a real native-window visual check (`make run`) hasn't been performed either.
+- Added `internal/platform/trasher_{darwin,windows}.go` (`platform.NewTrasher()`) so the GUI app
+  and `vault-mcp` share the same OS trash adapter instead of duplicating build-tagged code.
+- Frontend test infra: added `jsdom` as a dev dependency and set `test.environment: "jsdom"` /
+  `test.execArgv: ["--no-experimental-webstorage"]` in `vite.config.ts` — Node 22+'s built-in
+  (experimental) `localStorage` global otherwise shadows jsdom's working implementation with a
+  stub that throws, which broke `store/chat.ts`'s (and would have broken `store/settings.ts`'s)
+  `localStorage` persistence under test.
 
 ### Known limitations / follow-ups
 
@@ -48,3 +73,9 @@ and a real `wails3 package` produced a working signed `bin/vault.app` plus `bin/
 - The e2e smoke test (`internal/service/smoke_test.go`, launch → search → open → preview) drives
   the real service stack (including the actual Wails `fileserver` service) directly rather than
   through a browser/webview — there's no Wails UI-automation harness set up in this project.
+- **The embedded chat panel's API key is stored in `localStorage` in plaintext** — no OS keychain
+  integration. Wails v3 has no built-in keychain wrapper; per-OS secure storage is a real addition,
+  not done here.
+- **MCP tools omit `duplicate`, `compress`, `undo`, `thumbnail`, `watch`, and mutating pins** —
+  deliberately out of scope for the initial 9-tool set (list/search/read/move/rename/paste-into/
+  new-folder/trash/list-pinned); additive follow-ups if needed.

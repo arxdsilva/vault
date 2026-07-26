@@ -28,15 +28,20 @@ zero chrome, keyboard-first, instant everything. Full design spec: [`docs/SPEC.m
 
 ```
 main.go                    Wails app entry: window, theming, service registration
+cmd/vault-mcp/              MCP server entry point (Claude Desktop / Cursor / MCP clients)
 internal/core/             platform-neutral: dir listing, file ops, search index, frecency,
                             fsnotify watchers, thumbnail generation — no OS-specific APIs
+internal/platform/          NewTrasher() build-tag dispatch shared by main.go and cmd/vault-mcp
 internal/platform/darwin/  macOS adapter: Trash (~/.Trash)
 internal/platform/windows/ Windows adapter: Recycle Bin (SHFileOperationW) — cross-compiles
                             clean but is unverified at runtime (no Windows box in dev/CI here)
 internal/service/          thin Wails-bound services (Files, Search, Pinned) exposed to the
                             frontend; call only into internal/core
+internal/mcp/               MCP tool server (9 tools) wrapping internal/core for cmd/vault-mcp
 frontend/                  React + TypeScript + Tailwind UI; talks to internal/service via
-                            generated Wails bindings (frontend/bindings/)
+                            generated Wails bindings (frontend/bindings/); lib/chatTools.ts +
+                            lib/llmClient.ts + components/ChatPanel.tsx are the embedded
+                            AI assistant, calling the same lib/vault.ts operations
 ```
 
 See [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) for the full boundary
@@ -64,14 +69,62 @@ rules (core stays UI-agnostic; OS-specific behavior stays in one adapter per OS)
 
 ## Non-goals (MVP)
 
-No tabs, split panes, cloud integrations, network drives, bulk metadata editing, plugins, or file
-tagging. See `docs/SPEC.md` §7 for the full list.
+No tabs, split panes, cloud integrations, network drives, bulk metadata editing, a general
+third-party plugin system, or file tagging. See `docs/SPEC.md` §7 for the full list — this does
+not exclude the AI integration described below, which is a defined, first-party feature.
+
+## AI Integration
+
+Vault exposes the same 9 file operations (list directory, search, read file, move, rename,
+paste-into, new folder, trash, list pinned) two ways — see `docs/SPEC.md` §10 for the design
+rationale:
+
+### MCP server (Claude Desktop, Cursor, and other MCP clients)
+
+```sh
+make mcp-build                    # builds bin/vault-mcp
+./bin/vault-mcp --root ~/Projects # optional: restrict to a directory (defaults to $HOME)
+./bin/vault-mcp --http :8090      # optional: serve over streamable HTTP instead of stdio
+```
+
+Add it to **Claude Desktop**'s `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "vault": {
+      "command": "/absolute/path/to/bin/vault-mcp"
+    }
+  }
+}
+```
+
+Or to **Cursor**'s `.cursor/mcp.json` (project-level) or `~/.cursor/mcp.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "vault": {
+      "command": "/absolute/path/to/bin/vault-mcp"
+    }
+  }
+}
+```
+
+File operations are confined to `--root` (default `$HOME`) — a path outside it is rejected.
+Deletion always goes to the OS trash, never a permanent delete.
+
+### Embedded chat panel
+
+Click the assistant icon in the top bar, then set a provider (Claude or ChatGPT) and API key in
+Settings. The key is stored locally in the browser's `localStorage` — see `docs/STATUS.md` for the
+plaintext-storage caveat.
 
 ## Status
 
-All nine build-order steps are implemented and validated. See
+All ten build-order steps (including AI integration) are implemented and validated. See
 [`docs/STATUS.md`](docs/STATUS.md) for the checklist and a list of known limitations (Windows
-runtime verification, video thumbnails, "Open With…", `.msi` packaging).
+runtime verification, video thumbnails, "Open With…", `.msi` packaging, chat API key storage).
 
 ## Development
 
@@ -108,7 +161,7 @@ wails3 task windows:package GOOS=windows   # NSIS .exe installer (cross-compiled
 ```sh
 go build ./...
 go vet ./...
-go test -race -cover ./...        # internal/core, internal/service, internal/platform/darwin
+go test -race -cover ./...        # internal/core, internal/mcp, internal/service, internal/platform/darwin
 GOOS=windows go build ./... && GOOS=windows go vet ./...   # windows adapter compile check
 
 cd frontend

@@ -83,7 +83,7 @@ No sidebar tree. No menu bar beyond the OS-required minimum.
 
 ## 7. Non-Goals (MVP)
 
-- No tabs, no split panes, no cloud integrations, no network drives, no bulk metadata editing, no plugins, no file tagging. Keep it out; note them as future ideas in the README.
+- No tabs, no split panes, no cloud integrations, no network drives, no bulk metadata editing, no general third-party plugin system, no file tagging. Keep it out; note them as future ideas in the README. ("No plugin system" does not exclude the specific AI-integration surface described in §10 — that's a defined, first-party feature, not an open plugin API.)
 
 ## 8. Performance Targets
 
@@ -99,7 +99,31 @@ No sidebar tree. No menu bar beyond the OS-required minimum.
 - Handle permission errors gracefully (macOS full-disk access prompt with a clear explainer screen).
 - Deliverables: runnable dev setup (`wails3 dev`), build instructions for macOS `.dmg` and Windows `.msi` (`wails3 package`), and a README covering architecture, keyboard map, and non-goals.
 
-## 10. Build Order
+## 10. AI Integration
+
+Vault is meant to be an AI-first replacement for Finder/Explorer, not just a faster one: an AI
+assistant should be able to browse, search, and operate on the user's files the same way a human
+does through the GUI. Two surfaces share the same 9 underlying operations (list directory, search,
+read file, move, rename, paste-into, new folder, trash, list pinned):
+
+- **MCP server (`cmd/vault-mcp`).** A standalone Go binary exposing Vault's file-system core
+  (`internal/core`, via `internal/mcp`) as an MCP (Model Context Protocol) server, so Claude
+  Desktop, Cursor, or any other MCP client can drive Vault. Serves over stdio by default (what
+  Claude Desktop and Cursor expect) or `--http` for a local streamable-HTTP transport, which keeps
+  the door open for ChatGPT or other HTTP-based MCP clients as that ecosystem matures. See
+  README.md for client setup.
+- **Embedded chat panel.** A docked, bring-your-own-key assistant inside Vault itself
+  (`frontend/src/components/ChatPanel.tsx`), supporting both Claude and ChatGPT. Tool execution
+  reuses the same Wails-bound calls the rest of the UI already uses (`frontend/src/lib/vault.ts`)
+  rather than adding a second backend surface.
+- **Safety default:** both surfaces confine file operations to the user's home directory by
+  default (path-traversal-checked) rather than the whole filesystem, since an AI agent is a
+  different trust boundary than a human clicking through the GUI. The MCP server's `--root` flag
+  overrides this for power users.
+- **Known limitation:** the chat panel's API key is stored in `localStorage` in plaintext — no OS
+  keychain integration yet (see docs/STATUS.md).
+
+## 11. Build Order
 
 1. Wails v3 + React scaffold, window, theming.
 2. Go filesystem layer: read dir, metadata, fsnotify watcher, trash, rename/move/copy.
@@ -110,3 +134,4 @@ No sidebar tree. No menu bar beyond the OS-required minimum.
 7. Quick preview overlay.
 8. Grid view, thumbnails, polish, empty states, error handling.
 9. Tests, packaging, README.
+10. AI integration: MCP server + embedded chat panel.

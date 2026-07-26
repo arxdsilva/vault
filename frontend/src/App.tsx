@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertCircle, LayoutGrid, List, Search, Settings } from 'lucide-react'
+import { AlertCircle, LayoutGrid, List, MessageCircle, Search, Settings } from 'lucide-react'
 import { Breadcrumbs } from './components/Breadcrumbs'
+import { ChatPanel } from './components/ChatPanel'
 import { CommandPalette, type PaletteMode } from './components/CommandPalette'
 import { ContextMenu } from './components/ContextMenu'
 import { FileList } from './components/FileList'
@@ -16,6 +17,7 @@ import { usePinned } from './hooks/usePinned'
 import { useSearch } from './hooks/useSearch'
 import type { FileActionContext, FileActionEntry } from './lib/fileActions'
 import { vault, type Entry, type IndexEntry, type RecentEntry } from './lib/vault'
+import { useChat } from './store/chat'
 import { useClipboard } from './store/clipboard'
 import { useNavigation, type SortKey } from './store/navigation'
 import { useSettings } from './store/settings'
@@ -36,7 +38,9 @@ function App() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [previewPath, setPreviewPath] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
   const { accent, setAccent } = useSettings()
+  const { provider, apiKey, model, setProvider, setApiKey, setModel } = useChat()
   const searchRef = useRef<HTMLInputElement | null>(null)
   const { currentDir, navigate, parentOf, sortFor, setSort } = useNavigation()
   const sort = currentDir ? sortFor(currentDir) : 'name'
@@ -287,6 +291,18 @@ function App() {
 
         <button
           type="button"
+          aria-label="Assistant"
+          aria-pressed={chatOpen}
+          onClick={() => setChatOpen((v) => !v)}
+          className={`rounded-[var(--radius)] p-2 transition-colors duration-150 hover:text-[var(--fg)] ${
+            chatOpen ? 'text-[var(--fg)]' : 'text-[var(--muted)]'
+          }`}
+        >
+          <MessageCircle size={16} />
+        </button>
+
+        <button
+          type="button"
           aria-label="Settings"
           aria-pressed={settingsOpen}
           onClick={() => setSettingsOpen((v) => !v)}
@@ -299,10 +315,20 @@ function App() {
       </div>
 
       {settingsOpen && (
-        <SettingsPanel accent={accent} onSelectAccent={setAccent} onClose={() => setSettingsOpen(false)} />
+        <SettingsPanel
+          accent={accent}
+          onSelectAccent={setAccent}
+          provider={provider}
+          onSelectProvider={setProvider}
+          apiKey={apiKey}
+          onApiKeyChange={setApiKey}
+          model={model}
+          onModelChange={setModel}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
 
-      {/* Main area: pinned rail (48px, spec §4.3) + content. */}
+      {/* Main area: pinned rail (48px, spec §4.3) + content + assistant. */}
       <div className="flex min-h-0 flex-1">
         <PinnedRail pinned={pinned} onNavigate={navigate} onAdd={addPinned} onReorder={reorderPinned} />
 
@@ -368,6 +394,8 @@ function App() {
             </>
           )}
         </div>
+
+        {chatOpen && <ChatPanel onClose={() => setChatOpen(false)} />}
       </div>
 
       <CommandPalette
