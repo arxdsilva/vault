@@ -2,7 +2,11 @@ module github.com/asilva/vault
 
 go 1.25.0
 
-require github.com/wailsapp/wails/v3 v3.0.0-alpha2.117
+require (
+	github.com/fsnotify/fsnotify v1.10.1
+	github.com/sahilm/fuzzy v0.1.3
+	github.com/wailsapp/wails/v3 v3.0.0-alpha2.117
+)
 
 require (
 	github.com/adrg/xdg v0.5.3 // indirect

@@ -3,8 +3,12 @@ package main
 import (
 	"embed"
 	"log"
+	"os"
+	"path/filepath"
 
+	"github.com/asilva/vault/internal/service"
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/services/fileserver"
 )
 
 //go:embed all:frontend/dist
@@ -21,6 +25,33 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 	})
+
+	app.RegisterService(application.NewService(service.New(newTrasher(), app.Event)))
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	frecencyPath := filepath.Join(configDir, "vault", "frecency.json")
+	app.RegisterService(application.NewService(service.NewSearch(home, frecencyPath)))
+
+	pinnedPath := filepath.Join(configDir, "vault", "pinned.json")
+	app.RegisterService(application.NewService(service.NewPinned(pinnedPath)))
+
+	// Streams arbitrary file bytes to the frontend for quick preview (spec
+	// §5.4): images/video/audio/PDF load directly via <img>/<video>/<audio>/
+	// <iframe> src, text/code is fetched and rendered client-side. RootPath
+	// "/" serves any path the user can browse to; only verified on macOS —
+	// Windows drive-letter paths ("C:\...") need adapter-specific handling
+	// here as a follow-up (see docs/STATUS.md).
+	app.RegisterService(application.NewServiceWithOptions(
+		fileserver.NewWithConfig(&fileserver.Config{RootPath: "/"}),
+		application.ServiceOptions{Route: "/preview"},
+	))
 
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:  "Vault",

@@ -127,6 +127,20 @@ tasks:
     cmds:
       - task: create:app:bundle
 
+  package:dmg:
+    summary: Packages the application into a distributable `.dmg`
+    deps:
+      - task: package
+    cmds:
+      - task: create:dmg
+
+  create:dmg:
+    summary: Wraps the `.app` bundle in a `.dmg` disk image via hdiutil (macOS only, no extra tooling required)
+    internal: true
+    cmds:
+      - rm -f "{{.BIN_DIR}}/{{.APP_NAME}}.dmg"
+      - hdiutil create -volname "{{.APP_NAME}}" -srcfolder "{{.BIN_DIR}}/{{.APP_NAME}}.app" -ov -format UDZO "{{.BIN_DIR}}/{{.APP_NAME}}.dmg"
+
 
   create:app:bundle:
     summary: Creates an `.app` bundle

@@ -1,0 +1,99 @@
+package core
+
+import (
+	"path/filepath"
+	"testing"
+)
+
+func TestPinned(t *testing.T) {
+	t.Run("starts empty", func(t *testing.T) {
+		if got := NewPinned().List(); len(got) != 0 {
+			t.Errorf("List() = %v, want none", got)
+		}
+	})
+
+	t.Run("Add appends a path", func(t *testing.T) {
+		p := NewPinned()
+		p.Add("/a")
+		p.Add("/b")
+		if got := p.List(); len(got) != 2 || got[0] != "/a" || got[1] != "/b" {
+			t.Errorf("List() = %v, want [/a /b]", got)
+		}
+	})
+
+	t.Run("Add is idempotent for an already-pinned path", func(t *testing.T) {
+		p := NewPinned()
+		p.Add("/a")
+		p.Add("/a")
+		if got := p.List(); len(got) != 1 {
+			t.Errorf("List() = %v, want [/a]", got)
+		}
+	})
+
+	t.Run("Remove drops a pinned path", func(t *testing.T) {
+		p := NewPinned()
+		p.Add("/a")
+		p.Add("/b")
+		p.Remove("/a")
+		if got := p.List(); len(got) != 1 || got[0] != "/b" {
+			t.Errorf("List() = %v, want [/b]", got)
+		}
+	})
+
+	t.Run("Remove of an unpinned path is a no-op", func(t *testing.T) {
+		p := NewPinned()
+		p.Add("/a")
+		p.Remove("/missing")
+		if got := p.List(); len(got) != 1 || got[0] != "/a" {
+			t.Errorf("List() = %v, want [/a]", got)
+		}
+	})
+
+	t.Run("Reorder replaces the pin order", func(t *testing.T) {
+		p := NewPinned()
+		p.Add("/a")
+		p.Add("/b")
+		p.Reorder([]string{"/b", "/a"})
+		if got := p.List(); len(got) != 2 || got[0] != "/b" || got[1] != "/a" {
+			t.Errorf("List() = %v, want [/b /a]", got)
+		}
+	})
+}
+
+func TestPinnedSaveLoad(t *testing.T) {
+	t.Run("round-trips pins through a file", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "pinned.json")
+		p := NewPinned()
+		p.Add("/a")
+		p.Add("/b")
+		if err := p.Save(path); err != nil {
+			t.Fatalf("Save: %v", err)
+		}
+
+		loaded, err := LoadPinned(path)
+		if err != nil {
+			t.Fatalf("LoadPinned: %v", err)
+		}
+		if got := loaded.List(); len(got) != 2 || got[0] != "/a" || got[1] != "/b" {
+			t.Errorf("List() = %v, want [/a /b]", got)
+		}
+	})
+
+	t.Run("loading a missing file returns an empty, ready-to-use Pinned", func(t *testing.T) {
+		p, err := LoadPinned(filepath.Join(t.TempDir(), "missing.json"))
+		if err != nil {
+			t.Fatalf("LoadPinned: %v", err)
+		}
+		if got := p.List(); len(got) != 0 {
+			t.Errorf("List() = %v, want none", got)
+		}
+	})
+
+	t.Run("a corrupt file returns an error", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "pinned.json")
+		writeFile(t, path, "{not json")
+		if _, err := LoadPinned(path); err == nil {
+			t.Fatal("LoadPinned: got nil error, want non-nil")
+		}
+	})
+}

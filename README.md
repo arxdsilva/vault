@@ -17,13 +17,61 @@ zero chrome, keyboard-first, instant everything. Full design spec: [`docs/SPEC.m
 ## Stack
 
 - **Shell:** Wails v3 (Go backend + native webview)
-- **Frontend:** React 18 + TypeScript + Tailwind CSS, virtualized lists via TanStack Virtual
-- **Search:** Go-side fuzzy matcher over an in-memory index, incremental updates via `fsnotify`
-- **Trash:** cross-platform trash/recycle-bin library or platform shell APIs — never permanent delete
+- **Frontend:** React 18 + TypeScript + Tailwind CSS, virtualized lists/grid via TanStack Virtual,
+  Zustand for UI state, Shiki for code preview syntax highlighting
+- **Search:** Go-side fuzzy matcher (`sahilm/fuzzy`) over an in-memory index of the home
+  directory, ranked by match quality → recency → frequency; incremental updates via `fsnotify`
+- **Trash:** OS-native trash/recycle-bin per platform adapter — never a permanent delete
+- **Thumbnails:** image thumbnails decoded/resized/cached on disk by a bounded Go worker pool
+
+## Architecture
+
+```
+main.go                    Wails app entry: window, theming, service registration
+internal/core/             platform-neutral: dir listing, file ops, search index, frecency,
+                            fsnotify watchers, thumbnail generation — no OS-specific APIs
+internal/platform/darwin/  macOS adapter: Trash (~/.Trash)
+internal/platform/windows/ Windows adapter: Recycle Bin (SHFileOperationW) — cross-compiles
+                            clean but is unverified at runtime (no Windows box in dev/CI here)
+internal/service/          thin Wails-bound services (Files, Search, Pinned) exposed to the
+                            frontend; call only into internal/core
+frontend/                  React + TypeScript + Tailwind UI; talks to internal/service via
+                            generated Wails bindings (frontend/bindings/)
+```
+
+See [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) for the full boundary
+rules (core stays UI-agnostic; OS-specific behavior stays in one adapter per OS).
+
+## Keyboard map
+
+| Key | Action |
+|-----|--------|
+| Type anywhere | Search (top bar is always focused on launch) |
+| `Esc` | Clear search, return to Home |
+| `↑` `↓` | Move selection in a list/search results |
+| `←` `→` `↑` `↓` | Move selection in grid view |
+| `Enter` | Open selection |
+| `Cmd/Ctrl` + `Enter` (in search) | Reveal result's folder in-app |
+| `Cmd/Ctrl` + `↑` | Go to parent folder |
+| `Space` | Quick preview (image/video/audio/PDF/text/code) |
+| `←` `→` `↑` `↓` (preview open) | Move to previous/next file |
+| `Cmd/Ctrl` + `K` | Command palette |
+| `F2` | Rename selection |
+| `Cmd/Ctrl` + `N` | New folder |
+| `Cmd/Ctrl` + `C` (via palette "Copy") / `Cmd/Ctrl` + `V` | Copy / paste |
+| `Cmd/Ctrl` + `Z` | Undo (rename/move only) |
+| Drag file/folder onto the pinned rail | Pin it; drag within the rail to reorder |
+
+## Non-goals (MVP)
+
+No tabs, split panes, cloud integrations, network drives, bulk metadata editing, plugins, or file
+tagging. See `docs/SPEC.md` §7 for the full list.
 
 ## Status
 
-Pre-implementation. See [`docs/STATUS.md`](docs/STATUS.md) for build-order progress.
+All nine build-order steps are implemented and validated. See
+[`docs/STATUS.md`](docs/STATUS.md) for the checklist and a list of known limitations (Windows
+runtime verification, video thumbnails, "Open With…", `.msi` packaging).
 
 ## Development
 
@@ -33,14 +81,44 @@ Pre-implementation. See [`docs/STATUS.md`](docs/STATUS.md) for build-order progr
 - Commits are prepared by AI tooling but always reviewed and executed by a human
   (`.cursor/rules/git-commits.mdc`)
 
+### Setup
+
 ```sh
-wails3 dev       # run in dev mode
-wails3 package   # build macOS .dmg / Windows .msi
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117  # once, if wails3 isn't on PATH
+cd frontend && npm install && cd ..
+```
+
+### Run
+
+```sh
+wails3 dev                       # dev mode, hot reload
+wails3 build && ./bin/vault      # production build, run directly
+```
+
+### Package
+
+```sh
+wails3 package                   # bin/vault.app (ad-hoc signed)
+wails3 task package:dmg          # bin/vault.dmg (macOS only, via hdiutil)
+wails3 task windows:package GOOS=windows   # NSIS .exe installer (cross-compiled; see docs/STATUS.md)
+```
+
+### Test
+
+```sh
 go build ./...
 go vet ./...
-golangci-lint run
-go test -race -cover ./...
+go test -race -cover ./...        # internal/core, internal/service, internal/platform/darwin
+GOOS=windows go build ./... && GOOS=windows go vet ./...   # windows adapter compile check
+
+cd frontend
+npx tsc --noEmit
+npx vitest run
+npm run build
 ```
+
+`golangci-lint` isn't installed in this environment; run `golangci-lint run` if you have it
+available locally.
 
 ## License
 
