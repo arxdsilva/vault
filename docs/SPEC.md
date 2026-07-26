@@ -91,6 +91,11 @@ No sidebar tree. No menu bar beyond the OS-required minimum.
 - Cmd/Ctrl+K: palette. Cmd/Ctrl+F or just typing: search. F2: rename. Cmd/Ctrl+N: new folder.
 - Menu key (or Shift+F10): open the context menu for the current selection — the keyboard equivalent
   of right-click.
+- Gmail-style single-key shortcuts (fire outside any typing target): `/` focuses search, `C` copies
+  the selection, `Delete` (or Cmd+Backspace) moves it to Trash, `?` opens the shortcuts help dialog
+  (`ShortcutHelp.tsx`) — its own visibility is a Settings toggle ("shortcut helper"), modeled on
+  Gmail's Settings > Keyboard shortcuts; the shortcuts themselves are always active regardless of
+  that toggle.
 
 ### 5.8 Accessibility
 - Every custom widget exposes real ARIA semantics, not just a CSS highlight: file list/grid/search

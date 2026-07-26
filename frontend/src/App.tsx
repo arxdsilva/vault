@@ -11,6 +11,7 @@ import { PinnedRail } from './components/PinnedRail'
 import { PreviewOverlay } from './components/PreviewOverlay'
 import { SearchResults } from './components/SearchResults'
 import { SettingsPanel } from './components/SettingsPanel'
+import { ShortcutHelp } from './components/ShortcutHelp'
 import { Toast } from './components/Toast'
 import { useDirectory } from './hooks/useDirectory'
 import { usePinned } from './hooks/usePinned'
@@ -39,7 +40,8 @@ function App() {
   const [previewPath, setPreviewPath] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
-  const { accent, setAccent, theme, setTheme } = useSettings()
+  const [helpOpen, setHelpOpen] = useState(false)
+  const { accent, setAccent, theme, setTheme, shortcutHelperEnabled, setShortcutHelperEnabled } = useSettings()
   const { provider, apiKey, model, setProvider, setApiKey, setModel } = useChat()
   const searchRef = useRef<HTMLInputElement | null>(null)
   const { currentDir, navigate, parentOf, sortFor, setSort } = useNavigation()
@@ -107,6 +109,34 @@ function App() {
       }
       if (isTypingTarget(e.target)) return
 
+      // Gmail-style single-key shortcuts (spec §5.7/§5.8) — only fire outside
+      // typing targets (guarded above) and while no other overlay already
+      // owns the keyboard (matches the existing Space-preview convention
+      // below).
+      const overlayOpen = paletteMode !== 'closed' || !!contextMenu || !!previewPath || settingsOpen || helpOpen
+      if (e.key === '/' && !mod && !e.altKey && !overlayOpen) {
+        e.preventDefault()
+        searchRef.current?.focus()
+        return
+      }
+      if (e.key === '?' && !mod && !e.altKey && !overlayOpen) {
+        e.preventDefault()
+        // Gates only the help dialog, not the shortcuts themselves — see
+        // store/settings.ts.
+        if (shortcutHelperEnabled) setHelpOpen(true)
+        return
+      }
+      if (e.key.toLowerCase() === 'c' && !mod && !e.altKey && !overlayOpen && selectedEntry) {
+        e.preventDefault()
+        clipboard.copy(selectedEntry)
+        return
+      }
+      if ((e.key === 'Delete' || (mod && e.key === 'Backspace')) && !overlayOpen && selectedEntry) {
+        e.preventDefault()
+        vault.delete(selectedEntry.path).catch((err) => showError(String(err)))
+        return
+      }
+
       if (mod && e.key === 'ArrowUp' && currentDir) {
         e.preventDefault()
         navigate(parentOf(currentDir))
@@ -156,7 +186,19 @@ function App() {
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDir, navigate, parentOf, selectedEntry, clipboard.entry, previewPath, paletteMode, contextMenu])
+  }, [
+    currentDir,
+    navigate,
+    parentOf,
+    selectedEntry,
+    clipboard.entry,
+    previewPath,
+    paletteMode,
+    contextMenu,
+    shortcutHelperEnabled,
+    settingsOpen,
+    helpOpen,
+  ])
 
   function handleOpen(entry: Entry) {
     vault.touch(entry.path).catch(() => {})
@@ -333,6 +375,12 @@ function App() {
           onSelectAccent={setAccent}
           theme={theme}
           onSelectTheme={setTheme}
+          shortcutHelperEnabled={shortcutHelperEnabled}
+          onSelectShortcutHelperEnabled={setShortcutHelperEnabled}
+          onShowShortcuts={() => {
+            setSettingsOpen(false)
+            setHelpOpen(true)
+          }}
           provider={provider}
           onSelectProvider={setProvider}
           apiKey={apiKey}
@@ -452,6 +500,8 @@ function App() {
           onNext={() => movePreview(1)}
         />
       )}
+
+      {helpOpen && <ShortcutHelp onClose={() => setHelpOpen(false)} />}
 
       <Toast />
     </div>

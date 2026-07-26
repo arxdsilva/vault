@@ -8,6 +8,9 @@ interface SettingsPanelProps {
   onSelectAccent: (value: string) => void
   theme: Theme
   onSelectTheme: (theme: Theme) => void
+  shortcutHelperEnabled: boolean
+  onSelectShortcutHelperEnabled: (enabled: boolean) => void
+  onShowShortcuts: () => void
   provider: Provider
   onSelectProvider: (provider: Provider) => void
   apiKey: string
@@ -36,6 +39,9 @@ export function SettingsPanel({
   onSelectAccent,
   theme,
   onSelectTheme,
+  shortcutHelperEnabled,
+  onSelectShortcutHelperEnabled,
+  onShowShortcuts,
   provider,
   onSelectProvider,
   apiKey,
@@ -108,6 +114,37 @@ export function SettingsPanel({
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xs font-medium tracking-wide text-[var(--muted)] uppercase">Shortcuts</h2>
+          <div className="flex items-center justify-between gap-2 text-xs text-[var(--muted)]">
+            <span>Shortcut helper (press ?)</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={shortcutHelperEnabled}
+              aria-label="Keyboard shortcut helper"
+              onClick={() => onSelectShortcutHelperEnabled(!shortcutHelperEnabled)}
+              className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-150 ${
+                shortcutHelperEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform duration-150 ${
+                  shortcutHelperEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={onShowShortcuts}
+            className="self-start rounded-[calc(var(--radius)-2px)] border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--fg)] transition-colors duration-150 hover:bg-[var(--border)]"
+          >
+            View shortcuts
+          </button>
         </div>
 
         <div className="flex flex-col gap-2">

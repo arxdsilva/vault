@@ -49,11 +49,21 @@ const storedThemeRaw = localStorage.getItem(THEME_STORAGE_KEY)
 const storedTheme: Theme = isTheme(storedThemeRaw) ? storedThemeRaw : 'system'
 applyTheme(storedTheme)
 
+// Gates the "?" keyboard-shortcuts help dialog (spec §5.7) — modeled on
+// Gmail's Settings > Keyboard shortcuts toggle. Defaults on; the actual
+// shortcuts themselves stay active regardless (this only controls the
+// discoverability helper, not navigation itself).
+const HELPER_STORAGE_KEY = 'vault:shortcutHelper'
+const storedHelperRaw = localStorage.getItem(HELPER_STORAGE_KEY)
+const storedHelperEnabled = storedHelperRaw !== 'false'
+
 interface SettingsState {
   accent: string
   setAccent: (value: string) => void
   theme: Theme
   setTheme: (theme: Theme) => void
+  shortcutHelperEnabled: boolean
+  setShortcutHelperEnabled: (enabled: boolean) => void
 }
 
 export const useSettings = create<SettingsState>((set) => ({
@@ -68,5 +78,10 @@ export const useSettings = create<SettingsState>((set) => ({
     applyTheme(theme)
     localStorage.setItem(THEME_STORAGE_KEY, theme)
     set({ theme })
+  },
+  shortcutHelperEnabled: storedHelperEnabled,
+  setShortcutHelperEnabled: (enabled) => {
+    localStorage.setItem(HELPER_STORAGE_KEY, String(enabled))
+    set({ shortcutHelperEnabled: enabled })
   },
 }))

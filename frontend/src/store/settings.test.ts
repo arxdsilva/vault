@@ -33,3 +33,29 @@ describe('useSettings theme', () => {
     expect(localStorage.getItem('vault:theme')).toBe('system')
   })
 })
+
+describe('useSettings shortcutHelperEnabled', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    useSettings.setState({ shortcutHelperEnabled: true })
+  })
+
+  it('defaults to enabled', () => {
+    expect(useSettings.getState().shortcutHelperEnabled).toBe(true)
+  })
+
+  it('setShortcutHelperEnabled(false) updates state and persists to localStorage', () => {
+    useSettings.getState().setShortcutHelperEnabled(false)
+
+    expect(useSettings.getState().shortcutHelperEnabled).toBe(false)
+    expect(localStorage.getItem('vault:shortcutHelper')).toBe('false')
+  })
+
+  it('setShortcutHelperEnabled(true) updates state and persists to localStorage', () => {
+    useSettings.getState().setShortcutHelperEnabled(false)
+    useSettings.getState().setShortcutHelperEnabled(true)
+
+    expect(useSettings.getState().shortcutHelperEnabled).toBe(true)
+    expect(localStorage.getItem('vault:shortcutHelper')).toBe('true')
+  })
+})
