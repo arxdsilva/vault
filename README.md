@@ -6,6 +6,8 @@ Explorer — fast, lightweight, and free of feature bloat.
 A file manager that behaves like a command palette, not a filing cabinet: search-first navigation,
 zero chrome, keyboard-first, instant everything. Full design spec: [`docs/SPEC.md`](docs/SPEC.md).
 
+![Vault screenshot](docs/ss-vault.png)
+
 ## Goals
 
 - Fast startup, low resource usage
@@ -48,6 +50,8 @@ See [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) for the f
 rules (core stays UI-agnostic; OS-specific behavior stays in one adapter per OS).
 
 ## Keyboard map
+
+![Vault keyboard shortcuts](docs/ss-vault-shortcuts.png)
 
 | Key | Action |
 |-----|--------|
