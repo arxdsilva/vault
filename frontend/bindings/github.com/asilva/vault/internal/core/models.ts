@@ -23,9 +23,10 @@ export interface IndexEntry {
 }
 
 /**
- * Volume describes one mounted filesystem volume — an external/USB drive,
- * mounted disk image, or network share — shown in the pinned rail (spec
- * §4.3) alongside pinned folders.
+ * Volume describes one visible disk — internal, external/USB, mounted disk
+ * image, or network share — shown in the pinned rail (spec §4.3) alongside
+ * pinned folders. Ejectable is false for the boot/system disk, which can't
+ * be unmounted while running from it.
  */
 export interface Volume {
     "path": string;
