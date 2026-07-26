@@ -21,3 +21,16 @@ export interface IndexEntry {
     "path": string;
     "isDir": boolean;
 }
+
+/**
+ * Volume describes one mounted filesystem volume — an external/USB drive,
+ * mounted disk image, or network share — shown in the pinned rail (spec
+ * §4.3) alongside pinned folders.
+ */
+export interface Volume {
+    "path": string;
+    "name": string;
+    "ejectable": boolean;
+    "totalBytes": number;
+    "freeBytes": number;
+}

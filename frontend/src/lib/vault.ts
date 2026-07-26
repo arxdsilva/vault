@@ -1,6 +1,7 @@
 import * as Files from '../../bindings/github.com/asilva/vault/internal/service/files'
 import * as SearchService from '../../bindings/github.com/asilva/vault/internal/service/search'
 import * as PinnedService from '../../bindings/github.com/asilva/vault/internal/service/pinned'
+import * as VolumesService from '../../bindings/github.com/asilva/vault/internal/service/volumes'
 import { Clipboard, Events } from '@wailsio/runtime'
 
 export interface Entry {
@@ -30,7 +31,16 @@ export interface FsChange {
   op: 'created' | 'removed' | 'modified' | 'renamed'
 }
 
+export interface Volume {
+  path: string
+  name: string
+  ejectable: boolean
+  totalBytes: number
+  freeBytes: number
+}
+
 const FS_CHANGE_EVENT = 'vault:fschange'
+const VOLUMES_CHANGE_EVENT = 'vault:volumeschange'
 
 // The Wails TS generator types every Go slice return as T[] | null, since a
 // Go slice can always be nil — even where our own service methods guarantee
@@ -75,4 +85,11 @@ export const vault = {
   addPinned: (path: string) => PinnedService.Add(path),
   removePinned: (path: string) => PinnedService.Remove(path),
   reorderPinned: (paths: string[]) => PinnedService.Reorder(paths),
+
+  listVolumes: () => VolumesService.List().then((r) => orEmpty(r) as unknown as Volume[]),
+  ejectVolume: (path: string) => VolumesService.Eject(path),
+
+  onVolumesChange(handler: () => void): () => void {
+    return Events.On(VOLUMES_CHANGE_EVENT, () => handler())
+  },
 }

@@ -4,10 +4,12 @@
 import * as Files from "./files.js";
 import * as Pinned from "./pinned.js";
 import * as Search from "./search.js";
+import * as Volumes from "./volumes.js";
 export {
     Files,
     Pinned,
-    Search
+    Search,
+    Volumes
 };
 
 export type {

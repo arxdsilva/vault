@@ -16,6 +16,7 @@ import { Toast } from './components/Toast'
 import { useDirectory } from './hooks/useDirectory'
 import { usePinned } from './hooks/usePinned'
 import { useSearch } from './hooks/useSearch'
+import { useVolumes } from './hooks/useVolumes'
 import type { FileActionContext, FileActionEntry } from './lib/fileActions'
 import { vault, type Entry, type IndexEntry, type RecentEntry } from './lib/vault'
 import { useChat } from './store/chat'
@@ -50,6 +51,7 @@ function App() {
   const { results: searchResults, label: searchStatusLabel } = useSearch(query, currentDir)
   const searching = query.trim() !== ''
   const { pinned, add: addPinned, remove: removePinned, reorder: reorderPinned } = usePinned()
+  const { volumes, eject: ejectVolume } = useVolumes()
   const clipboard = useClipboard()
   const showError = useToast((s) => s.show)
 
@@ -395,10 +397,12 @@ function App() {
       <div className="flex min-h-0 flex-1">
         <PinnedRail
           pinned={pinned}
+          volumes={volumes}
           currentDir={currentDir}
           onNavigate={navigate}
           onAdd={addPinned}
           onReorder={reorderPinned}
+          onEjectVolume={ejectVolume}
         />
 
         <div className="flex min-w-0 flex-1 flex-col">

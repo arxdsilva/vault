@@ -3,5 +3,6 @@
 
 export type {
     Entry,
-    IndexEntry
+    IndexEntry,
+    Volume
 } from "./models.js";

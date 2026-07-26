@@ -1,0 +1,33 @@
+package core
+
+// Volume describes one mounted filesystem volume — an external/USB drive,
+// mounted disk image, or network share — shown in the pinned rail (spec
+// §4.3) alongside pinned folders.
+type Volume struct {
+	Path       string `json:"path"`
+	Name       string `json:"name"`
+	Ejectable  bool   `json:"ejectable"`
+	TotalBytes uint64 `json:"totalBytes"`
+	FreeBytes  uint64 `json:"freeBytes"`
+}
+
+// VolumeLister lists currently mounted volumes, e.g. external drives that
+// should surface the moment they're plugged in. Each OS provides its own
+// implementation under internal/platform/<os>.
+type VolumeLister interface {
+	List() ([]Volume, error)
+}
+
+// VolumeEjector unmounts/ejects a volume by its mount path — the same
+// operation as Finder's or Explorer's "Eject" on a USB drive.
+type VolumeEjector interface {
+	Eject(path string) error
+}
+
+// VolumeAdapter lists and ejects mounted volumes. Each OS provides one
+// concrete implementation under internal/platform/<os> satisfying both
+// narrower ports.
+type VolumeAdapter interface {
+	VolumeLister
+	VolumeEjector
+}

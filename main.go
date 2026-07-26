@@ -43,6 +43,8 @@ func main() {
 	pinnedPath := filepath.Join(configDir, "vault", "pinned.json")
 	app.RegisterService(application.NewService(service.NewPinned(pinnedPath, home)))
 
+	app.RegisterService(application.NewService(service.NewVolumes(platform.NewVolumes(), app.Event)))
+
 	// Streams arbitrary file bytes to the frontend for quick preview (spec
 	// §5.4): images/video/audio/PDF load directly via <img>/<video>/<audio>/
 	// <iframe> src, text/code is fetched and rendered client-side. RootPath
