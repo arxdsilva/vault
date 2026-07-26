@@ -1,0 +1,39 @@
+---
+description: TDD for behavior changes; co-located tests; keep touched areas well covered
+alwaysApply: true
+---
+
+# Unit Tests & TDD
+
+## TDD (behavior changes)
+
+For adding or changing behavior: **failing unit test first** → implement → refactor. Do not land
+production code without a red→green cycle.
+
+## File-system tests are the risky ones
+
+File operations (list, search, copy, move, delete, watch) are where bugs cost real user data. Test
+these against a temp directory / in-memory fake, never the user's real file system or fixed paths
+on the host machine.
+
+- Prefer an isolated temp directory per test (created and torn down by the test itself).
+- Cover destructive paths explicitly: missing file, permission denied, file in use, cross-volume
+  move, symlink/junction edge cases.
+- Platform-specific behavior (trash semantics, path separators, case sensitivity) gets tested
+  against the adapter for that OS (see `architecture.mdc`), not asserted generically.
+
+## Placement & isolation
+
+- Co-locate tests with the source they cover, following the convention of the chosen stack.
+- No network access; no dependency on the host machine's real file layout or environment.
+
+## Style
+
+- Table-driven where the stack supports it, with a clear name/description per case; assert one
+  key outcome per case.
+- Parallelize test cases only when they share no mutable state (e.g. don't share a temp directory
+  across parallel cases).
+
+## Coverage
+
+Keep touched areas well covered (aim ≥80%); every behavior change ships with a test.

@@ -1,0 +1,41 @@
+---
+description: Core file-system logic stays UI-agnostic; platform-specific quirks stay behind an adapter per OS
+alwaysApply: false
+---
+
+# Architecture
+
+Vault targets multiple operating systems (macOS + Windows, at minimum) with a single shared UI.
+Keep the parts that differ per-OS isolated from the parts that don't, regardless of which stack
+implements them.
+
+```
+core/ (or equivalent)   ← file-system operations, indexing, search, sorting/filtering — no OS-specific APIs
+        ▲
+        │  a narrow, platform-neutral interface (paths, entries, watch events, operations)
+        │
+platform/<os>/          ← one adapter per OS: trash/recycle-bin semantics, path quirks, native dialogs,
+                            file-watching APIs, permissions model
+ui/                     ← shared UI layer; talks only to core's interface, never to a platform adapter directly
+```
+
+## Rules
+
+| Do | Don't |
+|----|-------|
+| Keep file-system logic (list, search, sort, copy/move/delete) behind a small interface | Scatter OS-specific calls (`FSEvents`, `ReadDirectoryChangesW`, etc.) through the UI layer |
+| Put OS-specific behavior (trash vs. recycle bin, path separators, case sensitivity, hidden-file conventions) in one adapter per OS | Special-case the OS inline across unrelated files with `if runtime.GOOS == ...`-style checks |
+| Route destructive operations (delete, overwrite, move across volumes) through one reviewable code path | Duplicate delete/move logic per call site |
+| Design the core interface so a new platform adapter can be added without touching the UI | Leak a platform adapter's types into shared UI code |
+
+## Adding a feature (checklist)
+
+1. **Failing unit test (TDD)** — see `unit-tests-tdd.mdc`.
+2. **Core** — implement in the platform-neutral core; no OS-specific APIs here.
+3. **Adapter** — if the feature needs OS-specific behavior, add/extend the adapter for that OS only.
+4. **UI** — wire the UI to the core interface, not to the adapter directly.
+5. **Other platforms** — confirm the feature degrades sensibly (or is stubbed clearly) on OSes
+   without an adapter yet.
+
+Update this file once the stack is chosen — name the actual core/UI/adapter directories in place
+of the placeholders above.

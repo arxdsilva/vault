@@ -1,0 +1,90 @@
+---
+description: Vault agentic develop→validate loop — follow on every coding task
+alwaysApply: true
+---
+
+# Vault Agentic Development Loop
+
+Follow this loop on **every** development task in this repo.
+
+Vault is a **minimal, cross-platform file manager** aiming to replace Finder (macOS) and Windows Explorer
+File Explorer: fast startup, low resource usage, keyboard-first navigation, no feature bloat.
+The tech stack is not yet finalized — check `README.md` for the current stack and build/test
+commands before assuming a language or framework. Update this rule and `architecture.mdc` once the
+stack lands.
+
+## The Loop
+
+Repeat until the definition-of-done checklist is green:
+
+```
+Understand → Locate → Plan → Implement → Validate → Self-review → (iterate)
+```
+
+### 1. Understand
+
+- Restate the task goal and constraints (new capability vs. refactor vs. bug fix).
+- Identify whether the change touches core file-system logic, the UI/view layer, or a
+  platform-specific adapter (see `architecture.mdc`).
+
+### 2. Locate
+
+- Find existing code before writing new code.
+- For tests: co-located with the source, following whatever convention the chosen stack uses
+  (see `unit-tests-tdd.mdc`).
+
+### 3. Plan (minimal change)
+
+- Propose the **smallest** diff that solves the task.
+- Flag if the change crosses the core/UI boundary or touches a platform-specific adapter
+  (macOS vs. Windows vs. Linux) — keep platform code isolated (`architecture.mdc`).
+- Flag if the change affects destructive file operations (delete, move, overwrite) — these need
+  extra care and, ideally, a confirmation path and/or undo.
+
+### 4. Implement
+
+**TDD first** for behavior changes (see `unit-tests-tdd.mdc`): failing test → implement → refactor.
+
+| Area | Rule |
+|------|------|
+| **Scope** | Small, focused diffs; preserve existing public API/CLI/UI behavior unless asked |
+| **Architecture** | Core file-system logic stays UI-agnostic; platform quirks stay behind an adapter (`architecture.mdc`) |
+| **Safety** | Never perform destructive file operations without a clear, tested path; prefer trash/recycle-bin semantics over permanent delete where the OS supports it |
+| **Errors** | Surface file-system errors (permissions, missing paths, in-use files) to the user; don't swallow or panic |
+| **Formatting** | Use the formatter/linter standard for the chosen stack |
+
+### 5. Validate
+
+Run whatever build/lint/test commands the chosen stack defines (see `README.md` once the stack is
+set). **Do not skip validation** — execute, don't just suggest.
+
+### 6. Self-review
+
+- [ ] Diff is minimal — no unrelated formatting or drive-by refactors
+- [ ] Core file-system logic has no UI dependency; platform-specific code stays in its adapter
+- [ ] Destructive operations are deliberate, tested, and don't silently drop user data
+- [ ] Behavior changes used TDD (red→green); touched areas stay well covered
+- [ ] Build, lint, and relevant tests were run and pass
+- [ ] No accidental breaking changes to existing UI flows or CLI flags
+
+### 7. Iterate
+
+If any validation or checklist item fails: fix, re-run targeted checks, return to self-review. Do
+not hand off red builds or failing tests.
+
+## Definition of Done
+
+1. Code builds and passes lint/format checks for the chosen stack
+2. Relevant tests pass
+3. Behavior changes followed TDD; touched areas stay well covered
+4. Core/UI/platform-adapter boundaries hold (`architecture.mdc`)
+5. Self-review checklist (step 6) is satisfied
+6. No scope creep — only files required for the task were changed
+
+## Related rules
+
+- `core.mdc` — response discipline & token efficiency
+- `token-optimization.mdc` — agent-mode tool-call efficiency
+- `architecture.mdc` — core/UI/platform-adapter boundary
+- `unit-tests-tdd.mdc` — TDD + coverage
+- `git-commits.mdc` — human-owned commits
