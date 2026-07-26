@@ -43,7 +43,10 @@ export function CommandPalette({ mode, onModeChange, ctx, onRunAction, onMoveTo 
       return
     }
     const timer = setTimeout(() => {
-      vault.search(filter, MOVE_TO_LIMIT).then((results) => setFolders(results.filter((r) => r.isDir)))
+      vault
+        .search(filter, MOVE_TO_LIMIT)
+        .then((results) => setFolders(results.filter((r) => r.isDir)))
+        .catch(() => {})
     }, 50)
     return () => clearTimeout(timer)
   }, [mode, filter])

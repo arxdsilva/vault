@@ -22,7 +22,7 @@ export function HomeScreen({ pinned, onNavigate, onOpenRecent }: HomeScreenProps
   const [recent, setRecent] = useState<RecentEntry[]>([])
 
   useEffect(() => {
-    vault.recent(RECENT_LIMIT).then(setRecent)
+    vault.recent(RECENT_LIMIT).then(setRecent).catch(() => {})
   }, [])
 
   return (

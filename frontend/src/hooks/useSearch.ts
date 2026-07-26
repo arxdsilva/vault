@@ -59,7 +59,12 @@ export function useSearch(query: string, currentDir: string | null): SearchState
             )
           })
         },
-      )
+      ).catch(() => {
+        // A rejected search (e.g. a bound-method error) shouldn't leave the
+        // UI stuck on stale results forever — fall back to empty so the next
+        // keystroke starts clean.
+        if (latestRequest.current === requestId) setState(EMPTY_STATE)
+      })
     }, DEBOUNCE_MS)
 
     return () => {

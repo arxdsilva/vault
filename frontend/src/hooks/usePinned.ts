@@ -7,22 +7,22 @@ export function usePinned() {
   const [pinned, setPinned] = useState<string[]>([])
 
   useEffect(() => {
-    vault.listPinned().then(setPinned)
+    vault.listPinned().then(setPinned).catch(() => {})
   }, [])
 
   function add(path: string) {
     setPinned((prev) => (prev.includes(path) ? prev : [...prev, path]))
-    vault.addPinned(path)
+    vault.addPinned(path).catch(() => {})
   }
 
   function remove(path: string) {
     setPinned((prev) => prev.filter((p) => p !== path))
-    vault.removePinned(path)
+    vault.removePinned(path).catch(() => {})
   }
 
   function reorder(paths: string[]) {
     setPinned(paths)
-    vault.reorderPinned(paths)
+    vault.reorderPinned(paths).catch(() => {})
   }
 
   return { pinned, add, remove, reorder }

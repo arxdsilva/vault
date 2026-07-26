@@ -150,19 +150,19 @@ function App() {
   }, [currentDir, navigate, parentOf, selectedEntry, clipboard.entry, previewPath, paletteMode, contextMenu])
 
   function handleOpen(entry: Entry) {
-    vault.touch(entry.path)
+    vault.touch(entry.path).catch(() => {})
     if (entry.isDir) navigate(entry.path)
   }
 
   function handleOpenRecent(entry: RecentEntry) {
-    vault.touch(entry.path)
+    vault.touch(entry.path).catch(() => {})
     // Opening a file (preview / default app) lands in Build Order step 7;
     // for now, reveal it in its folder so it's at least reachable.
     navigate(entry.isDir ? entry.path : parentOf(entry.path))
   }
 
   function handleOpenResult(entry: IndexEntry) {
-    vault.touch(entry.path)
+    vault.touch(entry.path).catch(() => {})
     if (entry.isDir) {
       navigate(entry.path)
     } else {
@@ -172,7 +172,7 @@ function App() {
   }
 
   function handleRevealResult(entry: IndexEntry) {
-    vault.touch(entry.path)
+    vault.touch(entry.path).catch(() => {})
     navigate(parentOf(entry.path))
     setQuery('')
   }
@@ -202,7 +202,7 @@ function App() {
     switch (id) {
       case 'open':
         if (entry) {
-          vault.touch(entry.path)
+          vault.touch(entry.path).catch(() => {})
           if (entry.isDir) navigate(entry.path)
         }
         break
