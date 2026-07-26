@@ -1,9 +1,11 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { File, Folder } from 'lucide-react'
 import type { Entry } from '../lib/vault'
 import { formatDateTime } from '../lib/formatDate'
 import { formatSize } from '../lib/formatSize'
+import { entriesAt } from '../lib/multiSelect'
+import { useMultiSelect } from '../hooks/useMultiSelect'
 import { PINNED_DRAG_TYPE } from './PinnedRail'
 import { RenameInput } from './RenameInput'
 
@@ -12,8 +14,8 @@ const ROW_HEIGHT = 40
 interface FileListProps {
   entries: Entry[]
   onOpen: (entry: Entry) => void
-  onSelectionChange?: (entry: Entry | null) => void
-  onContextMenu?: (e: React.MouseEvent, entry: Entry) => void
+  onSelectionChange?: (entries: Entry[]) => void
+  onContextMenu?: (e: React.MouseEvent, entries: Entry[]) => void
   renamingPath?: string | null
   onRenameSubmit?: (entry: Entry, name: string) => void
   onRenameCancel?: () => void
@@ -26,7 +28,9 @@ function optionId(index: number): string {
 // Virtualized file list (spec §4.3, §5.3): only visible rows are rendered so
 // scrolling stays smooth even with tens of thousands of entries. Exposed as
 // a listbox (role="listbox"/"option", aria-selected) — see SearchResults.tsx
-// for the same pattern and its virtualization caveat.
+// for the same pattern and its virtualization caveat. Multi-select (Cmd/
+// Ctrl-click to toggle, Shift-click/Shift-Arrow to extend a range, Cmd/
+// Ctrl-A to select all) is handled by useMultiSelect, shared with GridView.
 export function FileList({
   entries,
   onOpen,
@@ -37,16 +41,12 @@ export function FileList({
   onRenameCancel,
 }: FileListProps) {
   const parentRef = useRef<HTMLDivElement | null>(null)
-  const [selected, setSelected] = useState(0)
+  const { selected, focus, handleClick, moveFocus, selectForContextMenu, selectAll } = useMultiSelect(entries.length)
 
   useEffect(() => {
-    setSelected((s) => Math.min(s, Math.max(entries.length - 1, 0)))
-  }, [entries.length])
-
-  useEffect(() => {
-    onSelectionChange?.(entries[selected] ?? null)
+    onSelectionChange?.(entriesAt(selected, entries))
     // onSelectionChange identity may change every render; only re-fire when
-    // the actual selection (index or list) changes.
+    // the actual selection (indices or list) changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, entries])
 
@@ -59,23 +59,19 @@ export function FileList({
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (entries.length === 0) return
-    if (e.key === 'ArrowDown') {
+    const mod = e.metaKey || e.ctrlKey
+    if (mod && e.key.toLowerCase() === 'a') {
       e.preventDefault()
-      setSelected((s) => {
-        const next = Math.min(s + 1, entries.length - 1)
-        virtualizer.scrollToIndex(next)
-        return next
-      })
+      selectAll()
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      virtualizer.scrollToIndex(moveFocus(1, e.shiftKey))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setSelected((s) => {
-        const next = Math.max(s - 1, 0)
-        virtualizer.scrollToIndex(next)
-        return next
-      })
+      virtualizer.scrollToIndex(moveFocus(-1, e.shiftKey))
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      onOpen(entries[selected])
+      if (entries[focus]) onOpen(entries[focus])
     }
   }
 
@@ -93,15 +89,16 @@ export function FileList({
       ref={parentRef}
       role="listbox"
       aria-label="Files"
+      aria-multiselectable="true"
       tabIndex={0}
-      aria-activedescendant={entries[selected] ? optionId(selected) : undefined}
+      aria-activedescendant={entries[focus] ? optionId(focus) : undefined}
       onKeyDown={handleKeyDown}
       className="min-h-0 flex-1 overflow-y-auto outline-none"
     >
       <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
         {virtualizer.getVirtualItems().map((row) => {
           const entry = entries[row.index]
-          const isSelected = row.index === selected
+          const isSelected = selected.has(row.index)
           const isRenaming = entry.path === renamingPath
           const Icon = entry.isDir ? Folder : File
           return (
@@ -120,11 +117,12 @@ export function FileList({
                 height: row.size,
                 transform: `translateY(${row.start}px)`,
               }}
-              onClick={() => setSelected(row.index)}
+              onClick={(e) => handleClick(row.index, e)}
               onDoubleClick={() => onOpen(entry)}
               onContextMenu={(e) => {
-                setSelected(row.index)
-                onContextMenu?.(e, entry)
+                const effective = isSelected ? entriesAt(selected, entries) : [entry]
+                selectForContextMenu(row.index)
+                onContextMenu?.(e, effective)
               }}
               draggable
               onDragStart={(e) => e.dataTransfer.setData(PINNED_DRAG_TYPE, entry.path)}
@@ -142,9 +140,7 @@ export function FileList({
               ) : (
                 <span className="min-w-0 flex-1 truncate">{entry.name}</span>
               )}
-              <span className="w-40 shrink-0 truncate text-[var(--muted)]">
-                {formatDateTime(entry.modTime)}
-              </span>
+              <span className="w-40 shrink-0 truncate text-[var(--muted)]">{formatDateTime(entry.modTime)}</span>
               <span className="w-16 shrink-0 text-right text-[var(--muted)]">
                 {formatSize(entry.size, entry.isDir)}
               </span>

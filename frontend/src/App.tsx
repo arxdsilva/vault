@@ -9,6 +9,7 @@ import { GridView } from './components/GridView'
 import { HomeScreen } from './components/HomeScreen'
 import { PinnedRail } from './components/PinnedRail'
 import { PreviewOverlay } from './components/PreviewOverlay'
+import { PropertiesDialog } from './components/PropertiesDialog'
 import { SearchResults } from './components/SearchResults'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ShortcutHelp } from './components/ShortcutHelp'
@@ -34,10 +35,11 @@ function isTypingTarget(target: EventTarget | null): boolean {
 function App() {
   const [view, setView] = useState<ViewMode>('list')
   const [query, setQuery] = useState('')
-  const [selectedEntry, setSelectedEntry] = useState<FileActionEntry | null>(null)
+  const [selectedEntries, setSelectedEntries] = useState<FileActionEntry[]>([])
   const [renamingPath, setRenamingPath] = useState<string | null>(null)
   const [paletteMode, setPaletteMode] = useState<PaletteMode>('closed')
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [propertiesPath, setPropertiesPath] = useState<string | null>(null)
   const [previewPath, setPreviewPath] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
@@ -65,10 +67,10 @@ function App() {
   const showError = useToast((s) => s.show)
 
   const actionCtx: FileActionContext = {
-    entry: selectedEntry,
+    entries: selectedEntries,
     currentDir,
     pinned,
-    clipboardEntry: clipboard.entry,
+    clipboardEntries: clipboard.entries,
   }
 
   // Files in the currently visible list, in display order — what Space
@@ -91,9 +93,9 @@ function App() {
   }, [])
 
   async function handlePaste() {
-    if (!clipboard.entry || !currentDir) return
+    if (clipboard.entries.length === 0 || !currentDir) return
     try {
-      await vault.paste(clipboard.entry.path, currentDir)
+      await Promise.all(clipboard.entries.map((e) => vault.paste(e.path, currentDir)))
     } catch (err) {
       showError(String(err))
     }
@@ -124,7 +126,13 @@ function App() {
       // typing targets (guarded above) and while no other overlay already
       // owns the keyboard (matches the existing Space-preview convention
       // below).
-      const overlayOpen = paletteMode !== 'closed' || !!contextMenu || !!previewPath || settingsOpen || helpOpen
+      const overlayOpen =
+        paletteMode !== 'closed' ||
+        !!contextMenu ||
+        !!previewPath ||
+        !!propertiesPath ||
+        settingsOpen ||
+        helpOpen
       if (e.key === '/' && !mod && !e.altKey && !overlayOpen) {
         e.preventDefault()
         searchRef.current?.focus()
@@ -137,14 +145,14 @@ function App() {
         if (shortcutHelperEnabled) setHelpOpen(true)
         return
       }
-      if (e.key.toLowerCase() === 'c' && !mod && !e.altKey && !overlayOpen && selectedEntry) {
+      if (e.key.toLowerCase() === 'c' && !mod && !e.altKey && !overlayOpen && selectedEntries.length > 0) {
         e.preventDefault()
-        clipboard.copy(selectedEntry)
+        clipboard.copy(selectedEntries)
         return
       }
-      if ((e.key === 'Delete' || (mod && e.key === 'Backspace')) && !overlayOpen && selectedEntry) {
+      if ((e.key === 'Delete' || (mod && e.key === 'Backspace')) && !overlayOpen && selectedEntries.length > 0) {
         e.preventDefault()
-        vault.delete(selectedEntry.path).catch((err) => showError(String(err)))
+        Promise.all(selectedEntries.map((entry) => vault.delete(entry.path))).catch((err) => showError(String(err)))
         return
       }
 
@@ -168,15 +176,15 @@ function App() {
         handleNewFolder()
         return
       }
-      if (e.key === 'F2' && selectedEntry) {
+      if (e.key === 'F2' && selectedEntries.length === 1) {
         e.preventDefault()
-        setRenamingPath(selectedEntry.path)
+        setRenamingPath(selectedEntries[0].path)
         return
       }
       // Keyboard-only equivalent of right-click (spec: keyboard-first) — the
       // Menu key, or Shift+F10 on hardware without one. No mouse position to
       // anchor to, so it opens near wherever focus currently is.
-      if ((e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) && selectedEntry && !contextMenu) {
+      if ((e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) && selectedEntries.length > 0 && !contextMenu) {
         e.preventDefault()
         const rect = (document.activeElement as HTMLElement | null)?.getBoundingClientRect()
         setContextMenu({ x: rect ? rect.left + 24 : 120, y: rect ? rect.top + 24 : 120 })
@@ -187,11 +195,11 @@ function App() {
         !previewPath &&
         paletteMode === 'closed' &&
         !contextMenu &&
-        selectedEntry &&
-        !selectedEntry.isDir
+        selectedEntries.length === 1 &&
+        !selectedEntries[0].isDir
       ) {
         e.preventDefault()
-        setPreviewPath(selectedEntry.path)
+        setPreviewPath(selectedEntries[0].path)
       }
     }
     window.addEventListener('keydown', handleGlobalKeyDown)
@@ -201,11 +209,12 @@ function App() {
     currentDir,
     navigate,
     parentOf,
-    selectedEntry,
-    clipboard.entry,
+    selectedEntries,
+    clipboard.entries,
     previewPath,
     paletteMode,
     contextMenu,
+    propertiesPath,
     shortcutHelperEnabled,
     settingsOpen,
     helpOpen,
@@ -254,56 +263,74 @@ function App() {
   }
 
   function handleMoveTo(targetDir: string) {
-    if (!selectedEntry) return
-    const name = selectedEntry.path.slice(selectedEntry.path.lastIndexOf('/') + 1)
-    vault.move(selectedEntry.path, `${targetDir}/${name}`).catch((err) => showError(String(err)))
+    if (selectedEntries.length === 0) return
+    Promise.all(
+      selectedEntries.map((entry) => {
+        const name = entry.path.slice(entry.path.lastIndexOf('/') + 1)
+        return vault.move(entry.path, `${targetDir}/${name}`)
+      }),
+    ).catch((err) => showError(String(err)))
   }
 
   function handleRunAction(id: string) {
-    const entry = selectedEntry
+    const entries = selectedEntries
+    const single = entries.length === 1 ? entries[0] : null
     switch (id) {
       case 'open':
-        if (entry) {
-          vault.touch(entry.path).catch(() => {})
-          if (entry.isDir) navigate(entry.path)
+        if (single) {
+          vault.touch(single.path).catch(() => {})
+          if (single.isDir) navigate(single.path)
         }
         break
       case 'rename':
-        if (entry) setRenamingPath(entry.path)
+        if (single) setRenamingPath(single.path)
         break
       case 'copy':
-        if (entry) clipboard.copy(entry)
+        if (entries.length > 0) clipboard.copy(entries)
         break
       case 'paste':
         handlePaste()
         break
       case 'duplicate':
-        if (entry) vault.duplicate(entry.path).catch((err) => showError(String(err)))
+        if (entries.length > 0) {
+          Promise.all(entries.map((e) => vault.duplicate(e.path))).catch((err) => showError(String(err)))
+        }
         break
       case 'copy-path':
-        if (entry) vault.copyPathToClipboard(entry.path).catch((err) => showError(String(err)))
+        if (entries.length > 0) {
+          vault.copyPathToClipboard(entries.map((e) => e.path).join('\n')).catch((err) => showError(String(err)))
+        }
         break
       case 'new-folder':
         handleNewFolder()
         break
       case 'compress':
-        if (entry) vault.compress(entry.path).catch((err) => showError(String(err)))
+        if (entries.length > 0) {
+          // One archive per selected item — the backend doesn't yet support
+          // combining a multi-select into a single zip.
+          Promise.all(entries.map((e) => vault.compress(e.path))).catch((err) => showError(String(err)))
+        }
         break
       case 'trash':
-        if (entry) vault.delete(entry.path).catch((err) => showError(String(err)))
+        if (entries.length > 0) {
+          Promise.all(entries.map((e) => vault.delete(e.path))).catch((err) => showError(String(err)))
+        }
         break
       case 'pin':
-        if (entry) {
-          if (pinned.includes(entry.path)) removePinned(entry.path)
-          else addPinned(entry.path)
+        if (entries.length > 0) {
+          const allPinned = entries.every((e) => pinned.includes(e.path))
+          entries.forEach((e) => (allPinned ? removePinned(e.path) : addPinned(e.path)))
         }
+        break
+      case 'properties':
+        if (single) setPropertiesPath(single.path)
         break
     }
   }
 
-  function handleContextMenu(e: React.MouseEvent, entry: FileActionEntry) {
+  function handleContextMenu(e: React.MouseEvent, entries: FileActionEntry[]) {
     e.preventDefault()
-    setSelectedEntry(entry)
+    setSelectedEntries(entries)
     setContextMenu({ x: e.clientX, y: e.clientY })
   }
 
@@ -423,8 +450,8 @@ function App() {
               statusLabel={searchStatusLabel}
               onOpen={handleOpenResult}
               onReveal={handleRevealResult}
-              onSelectionChange={setSelectedEntry}
-              onContextMenu={handleContextMenu}
+              onSelectionChange={(entry) => setSelectedEntries(entry ? [entry] : [])}
+              onContextMenu={(e, entry) => handleContextMenu(e, [entry])}
               renamingPath={renamingPath}
               onRenameSubmit={handleRenameSubmit}
               onRenameCancel={() => setRenamingPath(null)}
@@ -462,7 +489,7 @@ function App() {
                 <GridView
                   entries={entries}
                   onOpen={handleOpen}
-                  onSelectionChange={setSelectedEntry}
+                  onSelectionChange={setSelectedEntries}
                   onContextMenu={handleContextMenu}
                   renamingPath={renamingPath}
                   onRenameSubmit={handleRenameSubmit}
@@ -472,7 +499,7 @@ function App() {
                 <FileList
                   entries={entries}
                   onOpen={handleOpen}
-                  onSelectionChange={setSelectedEntry}
+                  onSelectionChange={setSelectedEntries}
                   onContextMenu={handleContextMenu}
                   renamingPath={renamingPath}
                   onRenameSubmit={handleRenameSubmit}
@@ -515,6 +542,8 @@ function App() {
           onNext={() => movePreview(1)}
         />
       )}
+
+      {propertiesPath && <PropertiesDialog path={propertiesPath} onClose={() => setPropertiesPath(null)} />}
 
       {helpOpen && <ShortcutHelp onClose={() => setHelpOpen(false)} />}
 

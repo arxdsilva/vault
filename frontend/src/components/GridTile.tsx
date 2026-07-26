@@ -14,7 +14,7 @@ interface GridTileProps {
   setSize: number
   posInSet: number
   isRenaming: boolean
-  onSelect: () => void
+  onSelect: (e: React.MouseEvent) => void
   onOpen: () => void
   onContextMenu: (e: React.MouseEvent) => void
   onRenameSubmit: (name: string) => void
