@@ -302,7 +302,7 @@ function App() {
     <div className="flex h-screen flex-col bg-[var(--bg)] text-[var(--fg)]">
       {/* Top bar (56px) — spec §4.1. Left area (before the search input) stays
           clear of the macOS traffic-light buttons via the inset title bar. */}
-      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--border)] pl-20 pr-3">
+      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--border)] pl-28 pr-3">
         <div className="relative flex-1">
           <Search
             size={16}
