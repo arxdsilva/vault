@@ -9,6 +9,7 @@ import { HomeScreen } from './components/HomeScreen'
 import { PinnedRail } from './components/PinnedRail'
 import { PreviewOverlay } from './components/PreviewOverlay'
 import { SearchResults } from './components/SearchResults'
+import { SettingsPanel } from './components/SettingsPanel'
 import { Toast } from './components/Toast'
 import { useDirectory } from './hooks/useDirectory'
 import { usePinned } from './hooks/usePinned'
@@ -17,6 +18,7 @@ import type { FileActionContext, FileActionEntry } from './lib/fileActions'
 import { vault, type Entry, type IndexEntry, type RecentEntry } from './lib/vault'
 import { useClipboard } from './store/clipboard'
 import { useNavigation, type SortKey } from './store/navigation'
+import { useSettings } from './store/settings'
 import { useToast } from './store/toast'
 
 type ViewMode = 'list' | 'grid'
@@ -33,6 +35,8 @@ function App() {
   const [paletteMode, setPaletteMode] = useState<PaletteMode>('closed')
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [previewPath, setPreviewPath] = useState<string | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const { accent, setAccent } = useSettings()
   const searchRef = useRef<HTMLInputElement | null>(null)
   const { currentDir, navigate, parentOf, sortFor, setSort } = useNavigation()
   const sort = currentDir ? sortFor(currentDir) : 'name'
@@ -284,11 +288,19 @@ function App() {
         <button
           type="button"
           aria-label="Settings"
-          className="rounded-[var(--radius)] p-2 text-[var(--muted)] transition-colors duration-150 hover:text-[var(--fg)]"
+          aria-pressed={settingsOpen}
+          onClick={() => setSettingsOpen((v) => !v)}
+          className={`rounded-[var(--radius)] p-2 transition-colors duration-150 hover:text-[var(--fg)] ${
+            settingsOpen ? 'text-[var(--fg)]' : 'text-[var(--muted)]'
+          }`}
         >
           <Settings size={16} />
         </button>
       </div>
+
+      {settingsOpen && (
+        <SettingsPanel accent={accent} onSelectAccent={setAccent} onClose={() => setSettingsOpen(false)} />
+      )}
 
       {/* Main area: pinned rail (48px, spec §4.3) + content. */}
       <div className="flex min-h-0 flex-1">
