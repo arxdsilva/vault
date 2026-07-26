@@ -50,6 +50,12 @@ No sidebar tree. No menu bar beyond the OS-required minimum.
   Content matching is a plain case-insensitive substring check, not fuzzy — content matches are a
   broader-recall tier appended after all name matches, since name relevance is the stronger
   signal.
+- When browsing a folder, results are staged by proximity (`frontend/src/lib/searchStages.ts`):
+  matches in the current folder appear first (labeled "Searching in {folder}"), then the search
+  progressively widens to each parent folder in turn (labeled "Expanding to {folder}") until the
+  whole fetched result set is revealed — showing the user what scope is currently active rather
+  than dumping one flat, unlabeled list. No folder open (the Home/launch screen) falls back to a
+  single unscoped list, as before.
 - Results show name, parent path (dimmed), and file-type icon. Enter opens; Cmd/Ctrl+Enter reveals in its folder inside the app.
 - Esc clears search and returns to Home.
 

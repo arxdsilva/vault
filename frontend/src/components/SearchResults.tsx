@@ -5,6 +5,7 @@ import { RenameInput } from './RenameInput'
 
 interface SearchResultsProps {
   results: IndexEntry[]
+  statusLabel?: string | null
   onOpen: (entry: IndexEntry) => void
   onReveal: (entry: IndexEntry) => void
   onSelectionChange?: (entry: IndexEntry | null) => void
@@ -23,6 +24,7 @@ function parentOf(path: string): string {
 // Enter opens; Cmd/Ctrl+Enter reveals the result's parent folder in-app.
 export function SearchResults({
   results,
+  statusLabel,
   onOpen,
   onReveal,
   onSelectionChange,
@@ -62,7 +64,7 @@ export function SearchResults({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [results, selected, onOpen, onReveal])
 
-  if (results.length === 0) {
+  if (results.length === 0 && !statusLabel) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--muted)]">
         <SearchX size={28} strokeWidth={1.5} />
@@ -72,39 +74,44 @@ export function SearchResults({
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      {results.map((entry, i) => {
-        const Icon = entry.isDir ? Folder : File
-        const isRenaming = entry.path === renamingPath
-        return (
-          <div
-            key={entry.path}
-            onClick={() => setSelected(i)}
-            onDoubleClick={() => onOpen(entry)}
-            onContextMenu={(e) => {
-              setSelected(i)
-              onContextMenu?.(e, entry)
-            }}
-            className={`flex h-10 cursor-default items-center gap-3 px-3 text-sm transition-colors duration-150 ${
-              i === selected ? 'bg-[var(--accent)]/15' : 'hover:bg-[var(--surface)]'
-            }`}
-          >
-            <Icon size={16} className="shrink-0 text-[var(--muted)]" strokeWidth={1.5} />
-            {isRenaming ? (
-              <RenameInput
-                initialName={entry.name}
-                onSubmit={(name) => onRenameSubmit?.(entry, name)}
-                onCancel={() => onRenameCancel?.()}
-              />
-            ) : (
-              <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-            )}
-            <span className="max-w-[50%] shrink truncate text-[var(--muted)]">
-              {parentOf(entry.path)}
-            </span>
-          </div>
-        )
-      })}
+    <div className="flex min-h-0 flex-1 flex-col">
+      {statusLabel && (
+        <div className="shrink-0 border-b border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)]">
+          {statusLabel}
+        </div>
+      )}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {results.map((entry, i) => {
+          const Icon = entry.isDir ? Folder : File
+          const isRenaming = entry.path === renamingPath
+          return (
+            <div
+              key={entry.path}
+              onClick={() => setSelected(i)}
+              onDoubleClick={() => onOpen(entry)}
+              onContextMenu={(e) => {
+                setSelected(i)
+                onContextMenu?.(e, entry)
+              }}
+              className={`flex h-10 cursor-default items-center gap-3 px-3 text-sm transition-colors duration-150 ${
+                i === selected ? 'bg-[var(--accent)]/15' : 'hover:bg-[var(--surface)]'
+              }`}
+            >
+              <Icon size={16} className="shrink-0 text-[var(--muted)]" strokeWidth={1.5} />
+              {isRenaming ? (
+                <RenameInput
+                  initialName={entry.name}
+                  onSubmit={(name) => onRenameSubmit?.(entry, name)}
+                  onCancel={() => onRenameCancel?.()}
+                />
+              ) : (
+                <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+              )}
+              <span className="max-w-[50%] shrink truncate text-[var(--muted)]">{parentOf(entry.path)}</span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

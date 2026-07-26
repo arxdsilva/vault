@@ -45,7 +45,7 @@ function App() {
   const { currentDir, navigate, parentOf, sortFor, setSort } = useNavigation()
   const sort = currentDir ? sortFor(currentDir) : 'name'
   const { entries, error } = useDirectory(currentDir, sort)
-  const searchResults = useSearch(query)
+  const { results: searchResults, label: searchStatusLabel } = useSearch(query, currentDir)
   const searching = query.trim() !== ''
   const { pinned, add: addPinned, remove: removePinned, reorder: reorderPinned } = usePinned()
   const clipboard = useClipboard()
@@ -336,6 +336,7 @@ function App() {
           {searching ? (
             <SearchResults
               results={searchResults}
+              statusLabel={searchStatusLabel}
               onOpen={handleOpenResult}
               onReveal={handleRevealResult}
               onSelectionChange={setSelectedEntry}
