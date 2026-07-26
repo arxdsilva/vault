@@ -50,12 +50,94 @@ and a real `wails3 package` produced a working signed `bin/vault.app` plus `bin/
 
 - `internal/core/textindex.go` classifies small text/code files for content indexing (mirrors
   `frontend/src/lib/previewKind.ts`'s extension set); `Index` now stores lowercased content
-  alongside each entry, kept in sync via `BuildIndex` and `Indexer.handle` (including on
+  alongside each entry, kept in sync via `Indexer.Visit` and `Indexer.handle` (including on
   `fsnotify.Write`, not just create/remove). `Search` appends a content-match tier (plain
   substring, not fuzzy) after all name matches, deduplicated against them. No API/binding changes
   — `core.Search`'s signature and `SearchResult`/`IndexEntry` shapes are unchanged, so the MCP
   server's `search` tool and the frontend's search both pick this up automatically. `go test -race
   -cover ./internal/core/...` green (88.9% coverage).
+
+### Search bug fix: folder-local matches silently crowded out (spec §5.2)
+
+Root-caused a real, reported bug ("search files I know are in Downloads and get nothing"):
+`sahilm/fuzzy` scores *shorter* names higher for an identical prefix match, and `Search` hard-cuts
+the ranked candidate list to `limit` (was 50). A folder with many similarly-prefixed short names
+(screenshots, `file (1).pdf`, `file (2).pdf`, ...) — Downloads being the textbook case — can
+deterministically push a longer, more specific match below the cutoff *every time*, not just
+occasionally (reproduced directly in `internal/core/search_test.go` before fixing it).
+
+Fix, now that `wails3` is available in this environment (it wasn't earlier in the session; the
+`internal/mcp` read-only design decisions from that period stand, but this one required changing a
+bound method):
+- `core.Search` gained a `scopeDir` parameter: matches under `scopeDir` get their own allocation of
+  up to `limit`, independent of how many higher-scoring matches exist elsewhere in the tree. This
+  is a genuine guarantee, not a cosmetic reorder — it operates on the full, untruncated candidate
+  list before any cutoff is applied.
+- `service.Search.Query` (Wails-bound) gained a matching `dir` parameter; bindings regenerated via
+  `wails3 generate bindings` (confirmed working: `wails3 build` also passed end-to-end with the
+  real production binding-generation flags). `internal/mcp`'s `search` tool gained an equivalent
+  optional `dir` input.
+- `frontend/src/hooks/useSearch.ts` now passes the current folder as `dir` and raised
+  `RESULT_LIMIT` from 50 to 200 (the scoping guarantee doesn't help when the *noise* is in the same
+  folder as the target, which is the more common real case — a bigger budget shrinks that window).
+  `SearchResults.tsx` is now virtualized (`@tanstack/react-virtual`, matching `FileList.tsx`) so
+  the larger limit stays cheap to render.
+- **Residual limitation, stated plainly:** if a single folder has more than ~200 files that all
+  score equally against the query (e.g. hundreds of near-identical screenshot names), the specific
+  one a user wants can still be excluded — scoping guarantees fairness *between* folders, not
+  unbounded recall *within* one. A real fix for that would mean not hard-truncating by score at
+  all (pagination, or a fundamentally different ranking), which is a larger change than this pass
+  covers. `internal/core/search_test.go` has a regression test documenting this residual case
+  explicitly rather than pretending it's fully solved.
+
+### Search redesign: visit-driven indexing, not eager whole-home walk (spec §5.2)
+
+Root-caused a second, worse instance of "search returns nothing" (reported live: searching a file
+known to be in `~/Downloads` returned zero results with no error). Debug logging added to
+`service.Search.Query` and `useSearch` (`log.Printf`/`console.debug`, prefixed `search:`/
+`[search]` — this codebase had no logging anywhere before, and it's the fastest way to confirm the
+index/query wiring end-to-end if this class of bug recurs) showed every query being dropped with
+"index not ready yet". Two compounding causes, found in order:
+
+1. `core.BuildIndex` walked the whole home directory synchronously before the indexer was
+   considered ready, including into `~/Library` (96GB on the reproducing machine: caches, Mail,
+   app support, CoreSimulator, ...), which never finished in any reasonable time.
+2. Once that was fixed, the walk still failed outright: macOS TCC denies access to
+   privacy-protected folders with `EPERM` ("operation not permitted"), not the standard `EACCES`
+   that Go's `os.IsPermission` recognizes — so a single protected folder anywhere in the tree
+   aborted the *entire* build instead of being skipped, contradicting `BuildIndex`'s own doc
+   comment ("unreadable subtrees are skipped rather than failing the whole walk").
+
+Rather than keep patching an eager whole-home walk against an open-ended set of huge/protected
+folders, the indexing model changed: **`core.Indexer` only ever indexes directories that have
+actually been visited**, not the whole home tree up front.
+- `core.BuildIndex` is gone. `Indexer.Visit(dir)` replaces it: a non-recursive `os.ReadDir` of one
+  directory, upserted into the index and content-indexed, with a single fsnotify watch added for
+  that directory. A subdirectory shown in a visited folder gets an index *entry* (findable by
+  name) but its own contents aren't indexed until it's separately visited — `handle`'s Create
+  branch no longer recurses a watch onto new subdirectories the way `watchTree` used to.
+  `StartIndexer` now just validates `root` exists and returns immediately; the index starts empty.
+- `service.Search` gained a Wails-bound `Visit(dir) error` method. `frontend/src/hooks/
+  useDirectory.ts` calls `vault.visit(dir)` alongside the existing `vault.watch(dir)` every time
+  the browsed folder changes, so search coverage tracks browsing automatically.
+- `internal/mcp`'s `list_directory` tool calls `indexer.Visit` too (best-effort, doesn't fail the
+  listing) — an MCP agent's `search` tool only covers what it has already listed in the session;
+  the tool description says so explicitly so an agent knows to `list_directory` first if `search`
+  comes back empty. This was a deliberate tradeoff (discussed and confirmed, not assumed): MCP
+  clients have no "browsing session" the way the GUI does, but per-visit indexing was chosen
+  uniformly over keeping the old eager-whole-root behavior just for MCP, to avoid two different
+  indexing strategies in one codebase.
+- The `~/Library`-specific exclusion from the first fix is gone — moot now, since nothing is ever
+  walked unless a human or an agent deliberately visits it, and a non-recursive `ReadDir` of even a
+  huge directory is cheap regardless of its name. The EPERM-vs-`os.IsPermission` fix is *also*
+  effectively moot for the same reason (nothing walks a subtree it wasn't asked to), but the
+  underlying `os.IsPermission` gap is real and would resurface if any future code re-adds a
+  recursive walk — worth remembering if that happens.
+- **Consequence, stated plainly:** search no longer covers "anywhere in your home directory" the
+  moment the app launches — only folders you've actually opened (GUI) or listed (MCP) during the
+  session. This was an explicit, discussed tradeoff against `docs/SPEC.md`'s original "index of the
+  user's home directory" framing, chosen because eager indexing was fundamentally unworkable
+  against real home directories (huge folders, OS privacy gates) rather than a preference.
 
 ### Known limitations / follow-ups
 
@@ -73,11 +155,12 @@ and a real `wails3 package` produced a working signed `bin/vault.app` plus `bin/
 - **Windows packaging doesn't produce a literal `.msi`.** The scaffolded `windows:package` task
   (NSIS) produces a `.exe` installer; an MSIX task producing `.msix` also exists. A WiX-based
   `.msi` isn't set up. macOS packaging does produce a real `.dmg` (`task package:dmg`).
-- **The recursive search index watcher uses one fsnotify watch per directory** (see
-  `internal/core/indexer.go`), not a single native recursive stream (macOS FSEvents / Windows
-  `ReadDirectoryChangesW` both support that natively). Fine for typical home directories; a
-  single-stream backend would use far fewer OS resources at very large file/directory counts —
-  the 200k-file/<100ms search target in spec §8 hasn't been benchmarked at that scale.
+- **The search index watcher uses one fsnotify watch per visited directory** (see
+  `internal/core/indexer.go`'s `Visit`), not a single native recursive stream (macOS FSEvents /
+  Windows `ReadDirectoryChangesW` both support that natively). Since indexing is visit-driven (see
+  the redesign note above) rather than a whole-tree walk, watch count now tracks how many folders
+  have actually been browsed/listed, not the size of the home directory — the 200k-file/<100ms
+  search target in spec §8 is scoped accordingly and hasn't been separately benchmarked.
 - **No true progress/cancel UI for long copy/move operations** (spec §5.6 mentions this); errors
   from file operations do surface via a toast (`frontend/src/store/toast.ts`), but there's no
   progress bar or cancel button for large copies.

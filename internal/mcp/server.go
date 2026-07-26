@@ -92,7 +92,7 @@ func (s *Server) MCPServer() *sdkmcp.Server {
 
 	sdkmcp.AddTool(srv, &sdkmcp.Tool{
 		Name:        "search",
-		Description: "Fuzzy-search indexed files by name, ranked by match quality, recency, and frequency of use.",
+		Description: "Fuzzy-search indexed files by name, ranked by match quality, recency, and frequency of use. Only covers directories already listed via list_directory in this session — call list_directory on the relevant area first if search comes back empty.",
 	}, s.search)
 
 	sdkmcp.AddTool(srv, &sdkmcp.Tool{

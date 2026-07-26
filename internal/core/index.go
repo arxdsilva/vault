@@ -1,9 +1,6 @@
 package core
 
 import (
-	"io/fs"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -17,8 +14,9 @@ type IndexEntry struct {
 }
 
 // Index is an in-memory, concurrency-safe set of indexed paths used for
-// search (spec §5.2). BuildIndex populates one from disk; Upsert/Remove keep
-// it in sync with incremental fsnotify events afterward.
+// search (spec §5.2). Indexer.Visit populates it from disk directory by
+// directory; Upsert/Remove keep it in sync with incremental fsnotify events
+// afterward.
 type Index struct {
 	mu      sync.RWMutex
 	entries map[string]IndexEntry // keyed by Path
@@ -28,42 +26,6 @@ type Index struct {
 // NewIndex returns an empty index.
 func NewIndex() *Index {
 	return &Index{entries: map[string]IndexEntry{}, content: map[string]string{}}
-}
-
-// BuildIndex walks root recursively and returns a populated Index. Hidden
-// files/directories (dotfiles) are excluded, matching Finder's default
-// search scope; unreadable subtrees are skipped rather than failing the
-// whole walk.
-func BuildIndex(root string) (*Index, error) {
-	idx := NewIndex()
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			if os.IsPermission(err) {
-				return fs.SkipDir
-			}
-			return err
-		}
-		if path == root {
-			return nil
-		}
-		if strings.HasPrefix(d.Name(), ".") {
-			if d.IsDir() {
-				return fs.SkipDir
-			}
-			return nil
-		}
-		idx.Upsert(IndexEntry{Name: d.Name(), Path: path, IsDir: d.IsDir()})
-		if !d.IsDir() {
-			if info, err := d.Info(); err == nil {
-				indexFileContent(idx, path, d.Name(), info.Size())
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return idx, nil
 }
 
 // Upsert adds or replaces the entry for e.Path.

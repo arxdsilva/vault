@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -22,7 +23,7 @@ func TestSearch(t *testing.T) {
 			IndexEntry{Name: "report.txt", Path: "/report.txt"},
 			IndexEntry{Name: "budget.xls", Path: "/budget.xls"},
 		)
-		results := Search(idx, NewFrecency(), "rep", now, 10)
+		results := Search(idx, NewFrecency(), "rep", now, 10, "")
 		if len(results) != 1 || results[0].Entry.Name != "report.txt" {
 			t.Fatalf("results = %+v, want just report.txt", results)
 		}
@@ -30,7 +31,7 @@ func TestSearch(t *testing.T) {
 
 	t.Run("empty query returns no results", func(t *testing.T) {
 		idx := newTestIndex(IndexEntry{Name: "report.txt", Path: "/report.txt"})
-		results := Search(idx, NewFrecency(), "", now, 10)
+		results := Search(idx, NewFrecency(), "", now, 10, "")
 		if len(results) != 0 {
 			t.Errorf("results = %+v, want none", results)
 		}
@@ -46,7 +47,7 @@ func TestSearch(t *testing.T) {
 			f.Touch("/old.docx", now)
 		}
 
-		results := Search(idx, f, "report", now, 10)
+		results := Search(idx, f, "report", now, 10, "")
 		if results[0].Entry.Path != "/report.txt" {
 			t.Fatalf("first result = %+v, want /report.txt (match quality beats frecency)", results[0])
 		}
@@ -61,7 +62,7 @@ func TestSearch(t *testing.T) {
 		f.Touch("/a/report.txt", now.Add(-time.Hour))
 		f.Touch("/b/report.txt", now)
 
-		results := Search(idx, f, "report", now, 10)
+		results := Search(idx, f, "report", now, 10, "")
 		if results[0].Entry.Path != "/b/report.txt" {
 			t.Fatalf("first result = %+v, want /b/report.txt (touched more recently)", results[0])
 		}
@@ -77,7 +78,7 @@ func TestSearch(t *testing.T) {
 		f.Touch("/b/report.txt", now)
 		f.Touch("/b/report.txt", now)
 
-		results := Search(idx, f, "report", now, 10)
+		results := Search(idx, f, "report", now, 10, "")
 		if results[0].Entry.Path != "/b/report.txt" {
 			t.Fatalf("first result = %+v, want /b/report.txt (touched more often)", results[0])
 		}
@@ -91,7 +92,7 @@ func TestSearch(t *testing.T) {
 		f := NewFrecency()
 		f.Touch("/b/report.txt", now)
 
-		results := Search(idx, f, "report", now, 10)
+		results := Search(idx, f, "report", now, 10, "")
 		if results[0].Entry.Path != "/b/report.txt" {
 			t.Fatalf("first result = %+v, want /b/report.txt (touched vs. never touched)", results[0])
 		}
@@ -103,7 +104,7 @@ func TestSearch(t *testing.T) {
 			IndexEntry{Name: "report2.txt", Path: "/report2.txt"},
 			IndexEntry{Name: "report3.txt", Path: "/report3.txt"},
 		)
-		results := Search(idx, NewFrecency(), "report", now, 2)
+		results := Search(idx, NewFrecency(), "report", now, 2, "")
 		if len(results) != 2 {
 			t.Fatalf("len(results) = %d, want 2", len(results))
 		}
@@ -114,7 +115,7 @@ func TestSearch(t *testing.T) {
 			IndexEntry{Name: "quarterly-report.txt", Path: "/quarterly-report.txt"},
 			IndexEntry{Name: "budget.xls", Path: "/budget.xls"},
 		)
-		results := Search(idx, NewFrecency(), "report", now, 10)
+		results := Search(idx, NewFrecency(), "report", now, 10, "")
 		if len(results) != 1 || results[0].Entry.Name != "quarterly-report.txt" {
 			t.Fatalf("results = %+v, want just quarterly-report.txt", results)
 		}
@@ -124,7 +125,7 @@ func TestSearch(t *testing.T) {
 		idx := newTestIndex(IndexEntry{Name: "notes.txt", Path: "/notes.txt"})
 		idx.UpsertContent("/notes.txt", strings.ToLower("The quarterly numbers are in this file."))
 
-		results := Search(idx, NewFrecency(), "quarterly", now, 10)
+		results := Search(idx, NewFrecency(), "quarterly", now, 10, "")
 		if len(results) != 1 || results[0].Entry.Path != "/notes.txt" {
 			t.Fatalf("results = %+v, want just /notes.txt (content match)", results)
 		}
@@ -134,7 +135,7 @@ func TestSearch(t *testing.T) {
 		idx := newTestIndex(IndexEntry{Name: "notes.txt", Path: "/notes.txt"})
 		idx.UpsertContent("/notes.txt", strings.ToLower("The QUARTERLY numbers are in this file."))
 
-		results := Search(idx, NewFrecency(), "Quarterly", now, 10)
+		results := Search(idx, NewFrecency(), "Quarterly", now, 10, "")
 		if len(results) != 1 || results[0].Entry.Path != "/notes.txt" {
 			t.Fatalf("results = %+v, want just /notes.txt", results)
 		}
@@ -147,7 +148,7 @@ func TestSearch(t *testing.T) {
 		)
 		idx.UpsertContent("/notes.txt", strings.ToLower("quarterly numbers"))
 
-		results := Search(idx, NewFrecency(), "quarterly", now, 10)
+		results := Search(idx, NewFrecency(), "quarterly", now, 10, "")
 		if len(results) != 2 {
 			t.Fatalf("len(results) = %d, want 2", len(results))
 		}
@@ -160,7 +161,7 @@ func TestSearch(t *testing.T) {
 		idx := newTestIndex(IndexEntry{Name: "quarterly.txt", Path: "/quarterly.txt"})
 		idx.UpsertContent("/quarterly.txt", strings.ToLower("quarterly numbers"))
 
-		results := Search(idx, NewFrecency(), "quarterly", now, 10)
+		results := Search(idx, NewFrecency(), "quarterly", now, 10, "")
 		if len(results) != 1 {
 			t.Fatalf("results = %+v, want exactly one (no duplicate)", results)
 		}
@@ -177,7 +178,7 @@ func TestSearch(t *testing.T) {
 		f.Touch("/a.txt", now.Add(-time.Hour))
 		f.Touch("/b.txt", now)
 
-		results := Search(idx, f, "quarterly", now, 10)
+		results := Search(idx, f, "quarterly", now, 10, "")
 		if results[0].Entry.Path != "/b.txt" {
 			t.Fatalf("first result = %+v, want /b.txt (touched more recently)", results[0])
 		}
@@ -190,9 +191,61 @@ func TestSearch(t *testing.T) {
 		)
 		idx.UpsertContent("/notes.txt", strings.ToLower("quarterly numbers"))
 
-		results := Search(idx, NewFrecency(), "quarterly", now, 1)
+		results := Search(idx, NewFrecency(), "quarterly", now, 1, "")
 		if len(results) != 1 || results[0].Entry.Path != "/quarterly.txt" {
 			t.Fatalf("results = %+v, want just the name match, limit applied", results)
 		}
 	})
+
+	// Regression coverage for a real reported bug: sahilm/fuzzy scores
+	// shorter names higher for the same prefix match, so a folder full of
+	// many similarly-prefixed short names (e.g. screenshots) can push a
+	// longer, more specific match below a shared limit — every time, not
+	// occasionally. "Downloads" is the textbook case: lots of
+	// auto-named files, one specific one the user actually wants.
+	t.Run("many short same-prefix matches can crowd a longer specific match out of the limit", func(t *testing.T) {
+		entries := make([]IndexEntry, 0, 61)
+		for i := 0; i < 60; i++ {
+			p := fmt.Sprintf("/Downloads/Screenshot %d.png", i)
+			entries = append(entries, IndexEntry{Name: fmt.Sprintf("Screenshot %d.png", i), Path: p})
+		}
+		target := "/Downloads/Screenshot final report.png"
+		entries = append(entries, IndexEntry{Name: "Screenshot final report.png", Path: target})
+		idx := newTestIndex(entries...)
+
+		results := Search(idx, NewFrecency(), "Screenshot", now, 50, "")
+		if containsPath(results, target) {
+			t.Fatal("expected the target to still be crowded out without scoping (documenting the residual limit)")
+		}
+	})
+
+	t.Run("scopeDir guarantees a folder-local match survives even when the rest of the tree out-scores it", func(t *testing.T) {
+		entries := make([]IndexEntry, 0, 61)
+		for i := 0; i < 60; i++ {
+			p := fmt.Sprintf("/elsewhere/Screenshot %d.png", i)
+			entries = append(entries, IndexEntry{Name: fmt.Sprintf("Screenshot %d.png", i), Path: p})
+		}
+		target := "/Downloads/Screenshot final report.png"
+		entries = append(entries, IndexEntry{Name: "Screenshot final report.png", Path: target})
+		idx := newTestIndex(entries...)
+
+		unscoped := Search(idx, NewFrecency(), "Screenshot", now, 50, "")
+		if containsPath(unscoped, target) {
+			t.Fatal("expected the target to be crowded out unscoped, proving the scenario is real")
+		}
+
+		scoped := Search(idx, NewFrecency(), "Screenshot", now, 50, "/Downloads")
+		if !containsPath(scoped, target) {
+			t.Fatalf("scoped results = %+v, want the target included", scoped)
+		}
+	})
+}
+
+func containsPath(results []SearchResult, path string) bool {
+	for _, r := range results {
+		if r.Entry.Path == path {
+			return true
+		}
+	}
+	return false
 }

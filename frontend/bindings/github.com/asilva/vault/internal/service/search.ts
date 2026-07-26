@@ -21,11 +21,14 @@ import * as $models from "./models.js";
 
 /**
  * Query returns up to limit fuzzy matches for query, ranked per
- * core.Search. It returns no results until the background index build has
- * produced an indexer.
+ * core.Search, over whatever folders have been indexed via Visit so far. If
+ * dir is non-empty, matches under dir (typically the folder currently being
+ * browsed) are guaranteed their own share of limit rather than competing
+ * with the rest of the index for a single shared cutoff — see core.Search's
+ * doc comment for why that matters.
  */
-export function Query(query: string, limit: number): $CancellablePromise<core$0.IndexEntry[] | null> {
-    return $Call.ByID(1354932529, query, limit);
+export function Query(query: string, limit: number, dir: string): $CancellablePromise<core$0.IndexEntry[] | null> {
+    return $Call.ByID(1354932529, query, limit, dir);
 }
 
 /**
@@ -43,4 +46,16 @@ export function Recent(limit: number): $CancellablePromise<$models.RecentEntry[]
  */
 export function Touch(path: string): $CancellablePromise<void> {
     return $Call.ByID(85586506, path);
+}
+
+/**
+ * Visit indexes dir's immediate contents and keeps it live via a watch, so
+ * search covers it from now on. The frontend calls this whenever the user
+ * navigates to a folder; the MCP server's list_directory tool calls it too,
+ * so an agent's search tool covers whatever it has already listed. A no-op
+ * if the indexer isn't up yet (there's nothing useful to report back, and
+ * the frontend doesn't wait on this call).
+ */
+export function Visit(dir: string): $CancellablePromise<void> {
+    return $Call.ByID(2747309646, dir);
 }

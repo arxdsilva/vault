@@ -18,10 +18,13 @@ import (
 
 // TestSmokeLaunchSearchOpenPreview exercises the real service stack across
 // the flow spec §9 calls out for an e2e smoke test: launch (list a
-// directory) → search → open (list the found result's directory) →
-// preview (stream its bytes, as the frontend's <img>/<video>/... would).
-// It stands in for a full browser-driven e2e test, which would need a
-// Wails-specific UI automation harness this project doesn't set up.
+// directory) → browse into a subfolder → search → open (list the found
+// result's directory) → preview (stream its bytes, as the frontend's
+// <img>/<video>/... would). Search only covers folders that have actually
+// been browsed to (spec §5.2 follow-up), so each List call here is paired
+// with a Visit, mirroring what the frontend does on navigation. It stands
+// in for a full browser-driven e2e test, which would need a Wails-specific
+// UI automation harness this project doesn't set up.
 func TestSmokeLaunchSearchOpenPreview(t *testing.T) {
 	home := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(home, "Photos"), 0o755); err != nil {
@@ -30,6 +33,12 @@ func TestSmokeLaunchSearchOpenPreview(t *testing.T) {
 	photoPath := filepath.Join(home, "Photos", "vacation-sunset.png")
 	writeTestPNG(t, photoPath, 64, 32)
 	writeFile(t, filepath.Join(home, "notes.txt"), "unrelated")
+
+	search := NewSearch(home, filepath.Join(t.TempDir(), "frecency.json"))
+	if err := search.ServiceStartup(context.Background(), application.ServiceOptions{}); err != nil {
+		t.Fatalf("Search.ServiceStartup: %v", err)
+	}
+	defer search.ServiceShutdown()
 
 	// Launch: the home directory lists its immediate contents.
 	files := New(&fakeTrasher{}, newFakeEmitter())
@@ -40,14 +49,21 @@ func TestSmokeLaunchSearchOpenPreview(t *testing.T) {
 	if !hasName(launchEntries, "Photos") {
 		t.Fatalf("launch listing missing Photos: %+v", launchEntries)
 	}
+	if err := search.Visit(home); err != nil {
+		t.Fatalf("Visit(home): %v", err)
+	}
+
+	// Browse into Photos — the photo only becomes searchable once its own
+	// folder has been visited, not just its ancestor.
+	photosDir := filepath.Join(home, "Photos")
+	if _, err := files.List(photosDir); err != nil {
+		t.Fatalf("List(photosDir): %v", err)
+	}
+	if err := search.Visit(photosDir); err != nil {
+		t.Fatalf("Visit(photosDir): %v", err)
+	}
 
 	// Search: find the photo by a fuzzy fragment of its name.
-	search := NewSearch(home, filepath.Join(t.TempDir(), "frecency.json"))
-	if err := search.ServiceStartup(context.Background(), application.ServiceOptions{}); err != nil {
-		t.Fatalf("Search.ServiceStartup: %v", err)
-	}
-	defer search.ServiceShutdown()
-
 	foundPath := awaitSearchResult(t, search, "sunset", "vacation-sunset.png")
 	search.Touch(foundPath)
 
@@ -103,7 +119,7 @@ func awaitSearchResult(t *testing.T, search *Search, query, wantName string) str
 	t.Helper()
 	deadline := time.After(2 * time.Second)
 	for {
-		for _, e := range search.Query(query, 10) {
+		for _, e := range search.Query(query, 10, "") {
 			if e.Name == wantName {
 				return e.Path
 			}

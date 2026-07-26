@@ -3,7 +3,11 @@ import { vault, type IndexEntry } from '../lib/vault'
 import { buildSearchStages } from '../lib/searchStages'
 
 const DEBOUNCE_MS = 50
-const RESULT_LIMIT = 50
+// Generous on purpose: the backend guarantees the current folder its own
+// share of this limit (core.Search's scopeDir), but a folder that itself
+// contains more same-scored matches than the limit can still crowd one out
+// (see docs/STATUS.md) — a bigger budget shrinks that window.
+const RESULT_LIMIT = 200
 const STAGE_DELAY_MS = 180
 const MAX_ANCESTOR_LEVELS = 4
 
@@ -34,9 +38,17 @@ export function useSearch(query: string, currentDir: string | null): SearchState
     const timers: ReturnType<typeof setTimeout>[] = []
 
     const debounce = setTimeout(() => {
-      Promise.all([vault.search(query, RESULT_LIMIT), currentDir ? vault.homeDir() : Promise.resolve('')]).then(
+      console.debug('[search] query', { query, dir: currentDir ?? '', limit: RESULT_LIMIT })
+      Promise.all([
+        vault.search(query, RESULT_LIMIT, currentDir ?? ''),
+        currentDir ? vault.homeDir() : Promise.resolve(''),
+      ]).then(
         ([entries, home]) => {
-          if (latestRequest.current !== requestId) return
+          if (latestRequest.current !== requestId) {
+            console.debug('[search] stale response discarded', { query })
+            return
+          }
+          console.debug('[search] response', { query, dir: currentDir ?? '', count: entries.length })
 
           const stages = buildSearchStages(entries, currentDir, home, MAX_ANCESTOR_LEVELS)
           stages.forEach((stage, i) => {

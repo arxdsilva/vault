@@ -27,12 +27,17 @@ func (s *Server) listDirectory(_ context.Context, _ *sdkmcp.CallToolRequest, in 
 	if err != nil {
 		return nil, ListDirectoryOut{}, err
 	}
+	// Best-effort: the search tool only covers directories that have been
+	// listed (spec §5.2 follow-up), so every listing feeds the index. A
+	// failure here shouldn't fail the listing itself.
+	_ = s.indexer.Visit(path)
 	return nil, ListDirectoryOut{Entries: entries}, nil
 }
 
 type SearchIn struct {
 	Query string `json:"query" jsonschema:"fuzzy search query matched against indexed file/folder names"`
 	Limit int    `json:"limit,omitempty" jsonschema:"maximum number of results (default 20)"`
+	Dir   string `json:"dir,omitempty" jsonschema:"optional directory to prioritize: matches under it get their own share of limit instead of competing with the rest of the tree"`
 }
 
 type SearchOut struct {
@@ -44,7 +49,15 @@ func (s *Server) search(_ context.Context, _ *sdkmcp.CallToolRequest, in SearchI
 	if limit <= 0 {
 		limit = defaultSearchLimit
 	}
-	results := core.Search(s.indexer.Index(), s.frecency, in.Query, time.Now(), limit)
+	var dir string
+	if in.Dir != "" {
+		resolved, err := s.resolvePath(in.Dir)
+		if err != nil {
+			return nil, SearchOut{}, err
+		}
+		dir = resolved
+	}
+	results := core.Search(s.indexer.Index(), s.frecency, in.Query, time.Now(), limit, dir)
 	return nil, SearchOut{Results: results}, nil
 }
 

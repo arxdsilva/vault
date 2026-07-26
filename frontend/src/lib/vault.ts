@@ -63,8 +63,9 @@ export const vault = {
     })
   },
 
-  search: (query: string, limit: number) =>
-    SearchService.Query(query, limit).then((r) => orEmpty(r) as unknown as IndexEntry[]),
+  search: (query: string, limit: number, dir = '') =>
+    SearchService.Query(query, limit, dir).then((r) => orEmpty(r) as unknown as IndexEntry[]),
+  visit: (dir: string) => SearchService.Visit(dir),
   touch: (path: string) => SearchService.Touch(path),
   recent: (limit: number) =>
     SearchService.Recent(limit).then((r) => orEmpty(r) as unknown as RecentEntry[]),

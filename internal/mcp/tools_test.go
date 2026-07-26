@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 )
 
 func writeFile(t *testing.T, path, contents string) {
@@ -141,18 +140,63 @@ func TestSearchTool(t *testing.T) {
 	s, root := newTestServer(t)
 	writeFile(t, filepath.Join(root, "report.txt"), "x")
 
-	// The indexer picks up the new file asynchronously via fsnotify; poll
-	// briefly rather than assuming it's immediate.
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		_, out, err := s.search(context.Background(), nil, SearchIn{Query: "report"})
-		if err != nil {
-			t.Fatalf("search: %v", err)
-		}
-		if len(out.Results) > 0 {
-			return
-		}
-		time.Sleep(5 * time.Millisecond)
+	// Search only covers directories that have been listed (spec §5.2
+	// follow-up); list_directory indexes synchronously, so no polling needed.
+	if _, _, err := s.listDirectory(context.Background(), nil, ListDirectoryIn{Path: ""}); err != nil {
+		t.Fatalf("listDirectory: %v", err)
 	}
-	t.Fatal("search: report.txt never appeared in results")
+
+	_, out, err := s.search(context.Background(), nil, SearchIn{Query: "report"})
+	if err != nil {
+		t.Fatalf("search: %v", err)
+	}
+	if len(out.Results) == 0 {
+		t.Fatal("search: report.txt not found")
+	}
+}
+
+func TestSearchToolFindsNothingBeforeListing(t *testing.T) {
+	s, root := newTestServer(t)
+	writeFile(t, filepath.Join(root, "report.txt"), "x")
+
+	_, out, err := s.search(context.Background(), nil, SearchIn{Query: "report"})
+	if err != nil {
+		t.Fatalf("search: %v", err)
+	}
+	if len(out.Results) != 0 {
+		t.Errorf("search before any list_directory call = %+v, want none", out.Results)
+	}
+}
+
+func TestSearchToolWithDir(t *testing.T) {
+	s, root := newTestServer(t)
+	sub := filepath.Join(root, "sub")
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatalf("Mkdir: %v", err)
+	}
+	writeFile(t, filepath.Join(sub, "report.txt"), "x")
+
+	// An agent exploring the tree lists root, then drills into sub — both
+	// listings index their own contents (spec §5.2 follow-up).
+	if _, _, err := s.listDirectory(context.Background(), nil, ListDirectoryIn{Path: ""}); err != nil {
+		t.Fatalf("listDirectory(root): %v", err)
+	}
+	if _, _, err := s.listDirectory(context.Background(), nil, ListDirectoryIn{Path: "sub"}); err != nil {
+		t.Fatalf("listDirectory(sub): %v", err)
+	}
+
+	_, out, err := s.search(context.Background(), nil, SearchIn{Query: "report", Dir: "sub"})
+	if err != nil {
+		t.Fatalf("search: %v", err)
+	}
+	if len(out.Results) == 0 || out.Results[0].Entry.Path != filepath.Join(sub, "report.txt") {
+		t.Fatalf("results = %+v, want report.txt under sub", out.Results)
+	}
+}
+
+func TestSearchToolRejectsDirOutsideRoot(t *testing.T) {
+	s, _ := newTestServer(t)
+	if _, _, err := s.search(context.Background(), nil, SearchIn{Query: "report", Dir: "../escape"}); err == nil {
+		t.Fatal("search: got nil error, want non-nil")
+	}
 }

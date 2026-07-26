@@ -22,6 +22,9 @@ function extOf(name: string): string {
 
 // Loads dir's entries, keeps the currently watched directory in sync with
 // dir (spec §5.3 browsing), and re-sorts live as fsnotify events arrive.
+// Also feeds dir into the search index (spec §5.2 follow-up): search only
+// covers directories that have actually been browsed to, not the whole home
+// tree up front, so every directory this hook loads is also visited.
 export function useDirectory(dir: string | null, sort: SortKey): DirectoryState {
   const [state, setState] = useState<DirectoryState>({ entries: [], loading: false, error: null })
 
@@ -47,6 +50,10 @@ export function useDirectory(dir: string | null, sort: SortKey): DirectoryState 
     vault.watch(dir).catch(() => {
       // Non-fatal: the listing above already succeeded, so browsing still
       // works — only live updates are unavailable (e.g. permission denied).
+    })
+    vault.visit(dir).catch(() => {
+      // Non-fatal: browsing works even if indexing this folder for search
+      // failed (e.g. permission denied) — see vault.watch's catch above.
     })
     const offChange = vault.onChange((change) => {
       if (change.dir !== dir) return

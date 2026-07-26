@@ -1,6 +1,7 @@
 package core
 
 import (
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -13,14 +14,87 @@ type SearchResult struct {
 	Entry IndexEntry
 }
 
-// Search fuzzy-matches query against idx, ranked by match quality, then
-// recency of access, then frequency of access (spec §5.2). An empty query
-// returns no results — the caller falls back to the Home screen instead.
-func Search(idx *Index, frecency *Frecency, query string, now time.Time, limit int) []SearchResult {
+type ranked struct {
+	entry      IndexEntry
+	matchScore int
+	lastAccess time.Time
+	count      int
+}
+
+// Search fuzzy/content-matches query against idx, ranked by match quality,
+// then recency of access, then frequency of access (frecency) (spec §5.2).
+// An empty query returns no results — the caller falls back to the Home
+// screen instead.
+//
+// If scopeDir is non-empty, matches under scopeDir get their own
+// allocation of up to limit results, independent of how many matches exist
+// elsewhere in the tree. Without this, a single global rank-then-truncate
+// pass can silently drop a file the user is looking for: sahilm/fuzzy
+// scores shorter names higher for the same prefix match, so a folder full
+// of similarly-prefixed short names (e.g. "Screenshot 1.png" .. "Screenshot
+// 200.png") can systematically crowd a longer, more specific match (e.g.
+// "Screenshot final report.png") out of a shared top-N cutoff — every time,
+// not just occasionally. Scoping guarantees the folder you're actually
+// browsing isn't competing with the rest of the tree for its share of the
+// limit.
+func Search(idx *Index, frecency *Frecency, query string, now time.Time, limit int, scopeDir string) []SearchResult {
 	if query == "" {
 		return nil
 	}
 
+	all := rankCandidates(idx, frecency, query, now)
+
+	final := all
+	if scopeDir != "" {
+		var inScope, outScope []ranked
+		for _, c := range all {
+			if isUnderDir(c.entry.Path, scopeDir) {
+				inScope = append(inScope, c)
+			} else {
+				outScope = append(outScope, c)
+			}
+		}
+		if limit > 0 && len(inScope) > limit {
+			inScope = inScope[:limit]
+		}
+		final = inScope
+		if limit <= 0 {
+			final = append(final, outScope...)
+		} else if remaining := limit - len(inScope); remaining > 0 {
+			if remaining > len(outScope) {
+				remaining = len(outScope)
+			}
+			final = append(final, outScope[:remaining]...)
+		}
+	}
+
+	if limit > 0 && len(final) > limit {
+		final = final[:limit]
+	}
+
+	results := make([]SearchResult, len(final))
+	for i, c := range final {
+		results[i] = SearchResult{Entry: c.entry}
+	}
+	return results
+}
+
+// isUnderDir reports whether path is dir itself or nested inside it.
+func isUnderDir(path, dir string) bool {
+	if path == dir {
+		return true
+	}
+	sep := string(filepath.Separator)
+	if !strings.HasSuffix(dir, sep) {
+		dir += sep
+	}
+	return strings.HasPrefix(path, dir)
+}
+
+// rankCandidates returns every match for query in idx, in final rank order
+// (name matches by quality, then recency, then frequency; content-only
+// matches appended after), before any limit or scope allocation is applied.
+func rankCandidates(idx *Index, frecency *Frecency, query string, now time.Time) []ranked {
 	entries := idx.Snapshot()
 	names := make([]string, len(entries))
 	for i, e := range entries {
@@ -28,12 +102,6 @@ func Search(idx *Index, frecency *Frecency, query string, now time.Time, limit i
 	}
 
 	matches := fuzzy.Find(query, names)
-	type ranked struct {
-		entry      IndexEntry
-		matchScore int
-		lastAccess time.Time
-		count      int
-	}
 	seen := make(map[string]bool, len(matches))
 	candidates := make([]ranked, len(matches))
 	for i, m := range matches {
@@ -80,15 +148,6 @@ func Search(idx *Index, frecency *Frecency, query string, now time.Time, limit i
 		}
 		return a.count > b.count
 	})
-	candidates = append(candidates, contentCandidates...)
 
-	if limit > 0 && len(candidates) > limit {
-		candidates = candidates[:limit]
-	}
-
-	results := make([]SearchResult, len(candidates))
-	for i, c := range candidates {
-		results[i] = SearchResult{Entry: c.entry}
-	}
-	return results
+	return append(candidates, contentCandidates...)
 }
