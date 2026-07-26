@@ -1,10 +1,12 @@
-import { Check } from 'lucide-react'
+import { Check, Monitor, Moon, Sun } from 'lucide-react'
 import { defaultModelFor, type Provider } from '../lib/llmClient'
-import { ACCENT_PRESETS } from '../store/settings'
+import { ACCENT_PRESETS, type Theme } from '../store/settings'
 
 interface SettingsPanelProps {
   accent: string
   onSelectAccent: (value: string) => void
+  theme: Theme
+  onSelectTheme: (theme: Theme) => void
   provider: Provider
   onSelectProvider: (provider: Provider) => void
   apiKey: string
@@ -14,12 +16,21 @@ interface SettingsPanelProps {
   onClose: () => void
 }
 
+const THEME_OPTIONS: { value: Theme; label: string; Icon: typeof Sun }[] = [
+  { value: 'system', label: 'System', Icon: Monitor },
+  { value: 'light', label: 'Light', Icon: Sun },
+  { value: 'dark', label: 'Dark', Icon: Moon },
+]
+
 // Minimal settings popover anchored under the gear button (spec §4.4):
-// accent color presets, plus the AI Assistant's provider/API key/model
-// (spec §10) — one settings entry point rather than a second surface.
+// appearance (theme + accent color presets), plus the AI Assistant's
+// provider/API key/model (spec §10) — one settings entry point rather than
+// a second surface.
 export function SettingsPanel({
   accent,
   onSelectAccent,
+  theme,
+  onSelectTheme,
   provider,
   onSelectProvider,
   apiKey,
@@ -34,6 +45,29 @@ export function SettingsPanel({
         onClick={(e) => e.stopPropagation()}
         className="absolute top-14 right-3 flex w-72 flex-col gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] p-3 shadow-lg"
       >
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xs font-medium tracking-wide text-[var(--muted)] uppercase">Appearance</h2>
+          <div className="flex gap-1 rounded-[calc(var(--radius)-2px)] border border-[var(--border)] bg-[var(--surface)] p-1">
+            {THEME_OPTIONS.map(({ value, label, Icon }) => (
+              <button
+                key={value}
+                type="button"
+                aria-label={label}
+                aria-pressed={theme === value}
+                onClick={() => onSelectTheme(value)}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-[calc(var(--radius)-4px)] py-1.5 text-xs transition-colors duration-150 ${
+                  theme === value
+                    ? 'bg-[var(--bg)] text-[var(--fg)] shadow-sm'
+                    : 'text-[var(--muted)] hover:text-[var(--fg)]'
+                }`}
+              >
+                <Icon size={13} strokeWidth={1.75} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-col gap-2">
           <h2 className="text-xs font-medium tracking-wide text-[var(--muted)] uppercase">Accent color</h2>
           <div className="flex flex-wrap gap-2">

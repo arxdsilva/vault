@@ -24,18 +24,49 @@ function applyAccent(value: string) {
 const stored = localStorage.getItem(STORAGE_KEY)
 if (stored) applyAccent(stored)
 
+// Spec §4.4: light/dark defaults to the OS setting ("system") but is
+// user-overridable to force one or the other regardless of OS.
+export type Theme = 'system' | 'light' | 'dark'
+
+const THEME_STORAGE_KEY = 'vault:theme'
+
+function isTheme(value: string | null): value is Theme {
+  return value === 'system' || value === 'light' || value === 'dark'
+}
+
+// "system" removes the override so index.css's prefers-color-scheme media
+// query takes back over; "light"/"dark" set data-theme, which index.css
+// gives priority over the OS setting.
+function applyTheme(theme: Theme) {
+  if (theme === 'system') {
+    document.documentElement.removeAttribute('data-theme')
+  } else {
+    document.documentElement.setAttribute('data-theme', theme)
+  }
+}
+
+const storedThemeRaw = localStorage.getItem(THEME_STORAGE_KEY)
+const storedTheme: Theme = isTheme(storedThemeRaw) ? storedThemeRaw : 'system'
+applyTheme(storedTheme)
+
 interface SettingsState {
   accent: string
   setAccent: (value: string) => void
+  theme: Theme
+  setTheme: (theme: Theme) => void
 }
 
-// Light/dark theme itself stays OS-keyed (spec §4.4) and isn't user-
-// overridable here; only the accent color is a user preference.
 export const useSettings = create<SettingsState>((set) => ({
   accent: stored ?? ACCENT_PRESETS[0].value,
   setAccent: (value) => {
     applyAccent(value)
     localStorage.setItem(STORAGE_KEY, value)
     set({ accent: value })
+  },
+  theme: storedTheme,
+  setTheme: (theme) => {
+    applyTheme(theme)
+    localStorage.setItem(THEME_STORAGE_KEY, theme)
+    set({ theme })
   },
 }))

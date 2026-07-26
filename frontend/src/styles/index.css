@@ -10,8 +10,11 @@
   --radius: 8px;
 }
 
+/* "system" (the default): follow the OS. store/settings.ts sets
+   data-theme="light"/"dark" on <html> to force one or the other regardless
+   of OS — that selector takes priority over this media query below. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0b0d12;
     --surface: #16181f;
     --fg: #f4f4f5;
@@ -19,6 +22,15 @@
     --border: rgba(255, 255, 255, 0.08);
     --accent: #818cf8; /* indigo-400, lighter for dark backgrounds */
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b0d12;
+  --surface: #16181f;
+  --fg: #f4f4f5;
+  --muted: #9aa0ab;
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #818cf8;
 }
 
 * {

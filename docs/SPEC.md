@@ -12,7 +12,7 @@ A file manager that behaves like a command palette, not a filing cabinet. Users 
 2. **Zero clutter.** No toolbars, no status bars, no folder trees. Actions appear contextually.
 3. **Instant.** Every interaction under 100ms perceived latency. Virtualize all lists. Never block the UI on filesystem I/O.
 4. **Keyboard-first.** Every action must be reachable without a mouse.
-5. **Calm aesthetics.** Generous whitespace, a single accent color, subtle 150–200ms transitions, native light/dark mode following the OS.
+5. **Calm aesthetics.** Generous whitespace, a single accent color, subtle 150–200ms transitions, native light/dark mode, defaulting to the OS setting but user-overridable in Settings.
 
 ## 3. Tech Stack
 
@@ -92,7 +92,8 @@ No sidebar tree. No menu bar beyond the OS-required minimum.
 ## 6. Visual Design
 
 - Typeface: Inter (or system UI stack). Base size 14px, generous 1.5 line height in lists (row height ~40px).
-- Light and dark themes keyed to OS setting; accent color default indigo, user-changeable among 6 presets.
+- Light and dark themes default to the OS setting; user-overridable to System/Light/Dark in Settings.
+  Accent color default indigo, user-changeable among 6 presets.
 - Rounded 8px corners, soft shadows only on overlays, no borders where spacing suffices.
 - Motion: fade/slide 150ms ease-out for overlays and navigation; no bouncy or decorative animation.
 - Empty states: friendly single line + icon, never blank white.

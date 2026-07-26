@@ -39,7 +39,7 @@ function App() {
   const [previewPath, setPreviewPath] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
-  const { accent, setAccent } = useSettings()
+  const { accent, setAccent, theme, setTheme } = useSettings()
   const { provider, apiKey, model, setProvider, setApiKey, setModel } = useChat()
   const searchRef = useRef<HTMLInputElement | null>(null)
   const { currentDir, navigate, parentOf, sortFor, setSort } = useNavigation()
@@ -318,6 +318,8 @@ function App() {
         <SettingsPanel
           accent={accent}
           onSelectAccent={setAccent}
+          theme={theme}
+          onSelectTheme={setTheme}
           provider={provider}
           onSelectProvider={setProvider}
           apiKey={apiKey}
