@@ -106,6 +106,21 @@ func TestFilesList(t *testing.T) {
 	}
 }
 
+func TestFilesStat(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "a.txt")
+	writeFile(t, path, "hi")
+
+	svc := New(&fakeTrasher{}, newFakeEmitter())
+	e, err := svc.Stat(path)
+	if err != nil {
+		t.Fatalf("Stat: %v", err)
+	}
+	if e.Name != "a.txt" || e.IsDir {
+		t.Errorf("Stat(%q) = %+v, want a.txt file entry", path, e)
+	}
+}
+
 func TestFilesHomeDir(t *testing.T) {
 	svc := New(&fakeTrasher{}, newFakeEmitter())
 	home, err := svc.HomeDir()

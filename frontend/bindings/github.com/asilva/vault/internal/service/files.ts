@@ -90,6 +90,15 @@ export function Rename(oldPath: string, newPath: string): $CancellablePromise<vo
 }
 
 /**
+ * Stat returns metadata for a single path, e.g. a pinned folder's own size
+ * and mod time for a hover card — unlike List, which describes a
+ * directory's children.
+ */
+export function Stat(path: string): $CancellablePromise<core$0.Entry> {
+    return $Call.ByID(3059962874, path);
+}
+
+/**
  * Thumbnail returns the path of a cached, downscaled thumbnail for the
  * image at path, generating one via a bounded worker pool if needed (spec
  * §5.3 grid view, §3 async thumbnail generation). Non-image files (video

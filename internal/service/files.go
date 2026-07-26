@@ -109,6 +109,13 @@ func (f *Files) List(dir string) ([]core.Entry, error) {
 	return core.ListDir(dir)
 }
 
+// Stat returns metadata for a single path, e.g. a pinned folder's own size
+// and mod time for a hover card — unlike List, which describes a
+// directory's children.
+func (f *Files) Stat(path string) (core.Entry, error) {
+	return core.Stat(path)
+}
+
 // HomeDir returns the current user's home directory.
 func (f *Files) HomeDir() (string, error) {
 	return os.UserHomeDir()

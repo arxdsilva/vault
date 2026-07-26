@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { File, Folder } from 'lucide-react'
 import type { Entry } from '../lib/vault'
+import { formatSize } from '../lib/formatSize'
 import { PINNED_DRAG_TYPE } from './PinnedRail'
 import { RenameInput } from './RenameInput'
 
@@ -18,19 +19,6 @@ interface FileListProps {
 }
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-
-function formatSize(bytes: number, isDir: boolean): string {
-  if (isDir) return '—'
-  if (bytes < 1024) return `${bytes} B`
-  const units = ['KB', 'MB', 'GB', 'TB']
-  let value = bytes / 1024
-  let unit = 0
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024
-    unit += 1
-  }
-  return `${value.toFixed(value < 10 ? 1 : 0)} ${units[unit]}`
-}
 
 // Virtualized file list (spec §4.3, §5.3): only visible rows are rendered so
 // scrolling stays smooth even with tens of thousands of entries.

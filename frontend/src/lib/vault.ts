@@ -42,6 +42,7 @@ function orEmpty<T>(v: T[] | null): T[] {
 
 export const vault = {
   list: (dir: string) => Files.List(dir).then((r) => orEmpty(r) as unknown as Entry[]),
+  stat: (path: string) => Files.Stat(path) as unknown as Promise<Entry>,
   homeDir: () => Files.HomeDir(),
   rename: (oldPath: string, newPath: string) => Files.Rename(oldPath, newPath),
   move: (src: string, dst: string) => Files.Move(src, dst),
