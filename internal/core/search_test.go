@@ -1,6 +1,7 @@
 package core
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -105,6 +106,93 @@ func TestSearch(t *testing.T) {
 		results := Search(idx, NewFrecency(), "report", now, 2)
 		if len(results) != 2 {
 			t.Fatalf("len(results) = %d, want 2", len(results))
+		}
+	})
+
+	t.Run("a partial, mid-word substring still fuzzy-matches the file name", func(t *testing.T) {
+		idx := newTestIndex(
+			IndexEntry{Name: "quarterly-report.txt", Path: "/quarterly-report.txt"},
+			IndexEntry{Name: "budget.xls", Path: "/budget.xls"},
+		)
+		results := Search(idx, NewFrecency(), "report", now, 10)
+		if len(results) != 1 || results[0].Entry.Name != "quarterly-report.txt" {
+			t.Fatalf("results = %+v, want just quarterly-report.txt", results)
+		}
+	})
+
+	t.Run("finds a file by content when the name doesn't match", func(t *testing.T) {
+		idx := newTestIndex(IndexEntry{Name: "notes.txt", Path: "/notes.txt"})
+		idx.UpsertContent("/notes.txt", strings.ToLower("The quarterly numbers are in this file."))
+
+		results := Search(idx, NewFrecency(), "quarterly", now, 10)
+		if len(results) != 1 || results[0].Entry.Path != "/notes.txt" {
+			t.Fatalf("results = %+v, want just /notes.txt (content match)", results)
+		}
+	})
+
+	t.Run("content matching is case-insensitive", func(t *testing.T) {
+		idx := newTestIndex(IndexEntry{Name: "notes.txt", Path: "/notes.txt"})
+		idx.UpsertContent("/notes.txt", strings.ToLower("The QUARTERLY numbers are in this file."))
+
+		results := Search(idx, NewFrecency(), "Quarterly", now, 10)
+		if len(results) != 1 || results[0].Entry.Path != "/notes.txt" {
+			t.Fatalf("results = %+v, want just /notes.txt", results)
+		}
+	})
+
+	t.Run("name matches rank before content-only matches", func(t *testing.T) {
+		idx := newTestIndex(
+			IndexEntry{Name: "quarterly.txt", Path: "/quarterly.txt"},
+			IndexEntry{Name: "notes.txt", Path: "/notes.txt"},
+		)
+		idx.UpsertContent("/notes.txt", strings.ToLower("quarterly numbers"))
+
+		results := Search(idx, NewFrecency(), "quarterly", now, 10)
+		if len(results) != 2 {
+			t.Fatalf("len(results) = %d, want 2", len(results))
+		}
+		if results[0].Entry.Path != "/quarterly.txt" || results[1].Entry.Path != "/notes.txt" {
+			t.Fatalf("results = %+v, want name match first, content match second", results)
+		}
+	})
+
+	t.Run("a file matching both by name and content is not duplicated", func(t *testing.T) {
+		idx := newTestIndex(IndexEntry{Name: "quarterly.txt", Path: "/quarterly.txt"})
+		idx.UpsertContent("/quarterly.txt", strings.ToLower("quarterly numbers"))
+
+		results := Search(idx, NewFrecency(), "quarterly", now, 10)
+		if len(results) != 1 {
+			t.Fatalf("results = %+v, want exactly one (no duplicate)", results)
+		}
+	})
+
+	t.Run("among equal content-only matches, more recently accessed ranks first", func(t *testing.T) {
+		idx := newTestIndex(
+			IndexEntry{Name: "a.txt", Path: "/a.txt"},
+			IndexEntry{Name: "b.txt", Path: "/b.txt"},
+		)
+		idx.UpsertContent("/a.txt", "quarterly")
+		idx.UpsertContent("/b.txt", "quarterly")
+		f := NewFrecency()
+		f.Touch("/a.txt", now.Add(-time.Hour))
+		f.Touch("/b.txt", now)
+
+		results := Search(idx, f, "quarterly", now, 10)
+		if results[0].Entry.Path != "/b.txt" {
+			t.Fatalf("first result = %+v, want /b.txt (touched more recently)", results[0])
+		}
+	})
+
+	t.Run("limit applies across both the name and content tiers combined", func(t *testing.T) {
+		idx := newTestIndex(
+			IndexEntry{Name: "quarterly.txt", Path: "/quarterly.txt"},
+			IndexEntry{Name: "notes.txt", Path: "/notes.txt"},
+		)
+		idx.UpsertContent("/notes.txt", strings.ToLower("quarterly numbers"))
+
+		results := Search(idx, NewFrecency(), "quarterly", now, 1)
+		if len(results) != 1 || results[0].Entry.Path != "/quarterly.txt" {
+			t.Fatalf("results = %+v, want just the name match, limit applied", results)
 		}
 	})
 }

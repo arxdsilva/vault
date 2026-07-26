@@ -114,6 +114,17 @@ func (ix *Indexer) handle(ev fsnotify.Event) {
 		ix.idx.Upsert(IndexEntry{Name: name, Path: ev.Name, IsDir: info.IsDir()})
 		if info.IsDir() {
 			ix.watchTree(ev.Name)
+		} else {
+			indexFileContent(ix.idx, ev.Name, name, info.Size())
 		}
+		return
+	}
+
+	if ev.Op&fsnotify.Write != 0 {
+		info, err := os.Stat(ev.Name)
+		if err != nil || info.IsDir() {
+			return
+		}
+		indexFileContent(ix.idx, ev.Name, name, info.Size())
 	}
 }

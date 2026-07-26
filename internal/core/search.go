@@ -2,6 +2,7 @@ package core
 
 import (
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/sahilm/fuzzy"
@@ -33,11 +34,13 @@ func Search(idx *Index, frecency *Frecency, query string, now time.Time, limit i
 		lastAccess time.Time
 		count      int
 	}
+	seen := make(map[string]bool, len(matches))
 	candidates := make([]ranked, len(matches))
 	for i, m := range matches {
 		e := entries[m.Index]
 		last, count := frecency.Stats(e.Path)
 		candidates[i] = ranked{entry: e, matchScore: m.Score, lastAccess: last, count: count}
+		seen[e.Path] = true
 	}
 
 	sort.SliceStable(candidates, func(i, j int) bool {
@@ -50,6 +53,34 @@ func Search(idx *Index, frecency *Frecency, query string, now time.Time, limit i
 		}
 		return a.count > b.count
 	})
+
+	// Files whose content contains query but whose name didn't already
+	// fuzzy-match: a broader-recall tier appended after name matches, since
+	// name relevance is the stronger signal (spec §5.2). Substring (not
+	// fuzzy) matching is the right semantic for file bodies — fuzzy
+	// subsequence matching over whole file contents would match almost
+	// anything and isn't useful here.
+	var contentCandidates []ranked
+	for _, path := range idx.MatchContentPaths(strings.ToLower(query)) {
+		if seen[path] {
+			continue
+		}
+		e, ok := idx.Get(path)
+		if !ok {
+			continue
+		}
+		last, count := frecency.Stats(path)
+		contentCandidates = append(contentCandidates, ranked{entry: e, lastAccess: last, count: count})
+		seen[path] = true
+	}
+	sort.SliceStable(contentCandidates, func(i, j int) bool {
+		a, b := contentCandidates[i], contentCandidates[j]
+		if !a.lastAccess.Equal(b.lastAccess) {
+			return a.lastAccess.After(b.lastAccess)
+		}
+		return a.count > b.count
+	})
+	candidates = append(candidates, contentCandidates...)
 
 	if limit > 0 && len(candidates) > limit {
 		candidates = candidates[:limit]

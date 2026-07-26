@@ -43,7 +43,13 @@ No sidebar tree. No menu bar beyond the OS-required minimum.
 
 ### 5.2 Search
 - Typing filters instantly (debounce ≤ 50ms) across the indexed home directory.
-- Fuzzy matching, ranked by: match quality → recency of access → frequency of access (frecency).
+- Fuzzy matching on file/folder names (including partial, mid-word substrings), ranked by: match
+  quality → recency of access → frequency of access (frecency).
+- Also matches file **contents** for small, text-classified files (source code, markdown, plain
+  text, config — see `internal/core/textindex.go`'s extension list; binaries/media are skipped).
+  Content matching is a plain case-insensitive substring check, not fuzzy — content matches are a
+  broader-recall tier appended after all name matches, since name relevance is the stronger
+  signal.
 - Results show name, parent path (dimmed), and file-type icon. Enter opens; Cmd/Ctrl+Enter reveals in its folder inside the app.
 - Esc clears search and returns to Home.
 

@@ -112,6 +112,74 @@ func TestIndexer(t *testing.T) {
 			t.Fatal("StartIndexer: got nil error, want non-nil")
 		}
 	})
+
+	t.Run("indexes the content of a file created after startup", func(t *testing.T) {
+		root := t.TempDir()
+		ix, err := StartIndexer(root)
+		if err != nil {
+			t.Fatalf("StartIndexer: %v", err)
+		}
+		defer ix.Close()
+
+		path := filepath.Join(root, "notes.txt")
+		writeFile(t, path, "The Quarterly Report is attached.")
+
+		awaitContentIndexed(t, ix, path, "quarterly")
+	})
+
+	t.Run("re-indexes content when a file is modified", func(t *testing.T) {
+		root := t.TempDir()
+		path := filepath.Join(root, "notes.txt")
+		writeFile(t, path, "first draft")
+
+		ix, err := StartIndexer(root)
+		if err != nil {
+			t.Fatalf("StartIndexer: %v", err)
+		}
+		defer ix.Close()
+
+		writeFile(t, path, "the quarterly report")
+		awaitContentIndexed(t, ix, path, "quarterly")
+	})
+
+	t.Run("removing a file drops its content from the index", func(t *testing.T) {
+		root := t.TempDir()
+		path := filepath.Join(root, "notes.txt")
+		writeFile(t, path, "quarterly report")
+
+		ix, err := StartIndexer(root)
+		if err != nil {
+			t.Fatalf("StartIndexer: %v", err)
+		}
+		defer ix.Close()
+
+		awaitContentIndexed(t, ix, path, "quarterly")
+
+		if err := os.Remove(path); err != nil {
+			t.Fatalf("Remove: %v", err)
+		}
+		awaitIndexed(t, ix, "notes.txt", false)
+		if matches := ix.Index().MatchContentPaths("quarterly"); len(matches) != 0 {
+			t.Errorf("MatchContentPaths() after removal = %v, want none", matches)
+		}
+	})
+}
+
+func awaitContentIndexed(t *testing.T, ix *Indexer, path, lowerQuery string) {
+	t.Helper()
+	deadline := time.After(2 * time.Second)
+	for {
+		for _, p := range ix.Index().MatchContentPaths(lowerQuery) {
+			if p == path {
+				return
+			}
+		}
+		select {
+		case <-time.After(20 * time.Millisecond):
+		case <-deadline:
+			t.Fatalf("timed out waiting for %q to be content-indexed for query %q", path, lowerQuery)
+		}
+	}
 }
 
 func awaitIndexed(t *testing.T, ix *Indexer, name string, present bool) {

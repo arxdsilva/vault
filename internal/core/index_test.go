@@ -3,6 +3,7 @@ package core
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -78,6 +79,36 @@ func TestBuildIndex(t *testing.T) {
 			t.Fatal("BuildIndex: got nil error, want non-nil")
 		}
 	})
+
+	t.Run("indexes the content of a small text file", func(t *testing.T) {
+		root := t.TempDir()
+		path := filepath.Join(root, "notes.txt")
+		writeFile(t, path, "The Quarterly Report is attached.")
+
+		idx, err := BuildIndex(root)
+		if err != nil {
+			t.Fatalf("BuildIndex: %v", err)
+		}
+
+		matches := idx.MatchContentPaths(strings.ToLower("quarterly"))
+		if len(matches) != 1 || matches[0] != path {
+			t.Errorf("MatchContentPaths() = %v, want [%s]", matches, path)
+		}
+	})
+
+	t.Run("does not index the content of a non-text file", func(t *testing.T) {
+		root := t.TempDir()
+		writeFile(t, filepath.Join(root, "photo.png"), "quarterly report")
+
+		idx, err := BuildIndex(root)
+		if err != nil {
+			t.Fatalf("BuildIndex: %v", err)
+		}
+
+		if matches := idx.MatchContentPaths("quarterly"); len(matches) != 0 {
+			t.Errorf("MatchContentPaths() = %v, want none", matches)
+		}
+	})
 }
 
 func TestIndexUpsertRemove(t *testing.T) {
@@ -108,6 +139,55 @@ func TestIndexUpsertRemove(t *testing.T) {
 	if snap[0].Path != "/root/b.txt" {
 		t.Errorf("remaining entry = %+v, want /root/b.txt", snap[0])
 	}
+}
+
+func TestIndexContent(t *testing.T) {
+	t.Run("MatchContentPaths finds a case-insensitive substring", func(t *testing.T) {
+		idx := NewIndex()
+		idx.Upsert(IndexEntry{Name: "notes.txt", Path: "/notes.txt"})
+		idx.UpsertContent("/notes.txt", strings.ToLower("The Quarterly Report is attached."))
+
+		matches := idx.MatchContentPaths(strings.ToLower("quarterly"))
+		if len(matches) != 1 || matches[0] != "/notes.txt" {
+			t.Errorf("MatchContentPaths() = %v, want [/notes.txt]", matches)
+		}
+	})
+
+	t.Run("MatchContentPaths finds nothing when the substring is absent", func(t *testing.T) {
+		idx := NewIndex()
+		idx.Upsert(IndexEntry{Name: "notes.txt", Path: "/notes.txt"})
+		idx.UpsertContent("/notes.txt", strings.ToLower("nothing relevant here"))
+
+		if matches := idx.MatchContentPaths("quarterly"); len(matches) != 0 {
+			t.Errorf("MatchContentPaths() = %v, want none", matches)
+		}
+	})
+
+	t.Run("Get returns the indexed entry for a path", func(t *testing.T) {
+		idx := NewIndex()
+		idx.Upsert(IndexEntry{Name: "a.txt", Path: "/a.txt"})
+
+		e, ok := idx.Get("/a.txt")
+		if !ok || e.Name != "a.txt" {
+			t.Errorf("Get() = %+v, %v, want a.txt entry, true", e, ok)
+		}
+
+		if _, ok := idx.Get("/missing.txt"); ok {
+			t.Error("Get() on a missing path = true, want false")
+		}
+	})
+
+	t.Run("Remove drops content along with the entry", func(t *testing.T) {
+		idx := NewIndex()
+		idx.Upsert(IndexEntry{Name: "a.txt", Path: "/a.txt"})
+		idx.UpsertContent("/a.txt", "quarterly")
+
+		idx.Remove("/a.txt")
+
+		if matches := idx.MatchContentPaths("quarterly"); len(matches) != 0 {
+			t.Errorf("MatchContentPaths() after Remove = %v, want none", matches)
+		}
+	})
 }
 
 func namesOf(entries []IndexEntry) map[string]bool {

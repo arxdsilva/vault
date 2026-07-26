@@ -46,6 +46,17 @@ and a real `wails3 package` produced a working signed `bin/vault.app` plus `bin/
   stub that throws, which broke `store/chat.ts`'s (and would have broken `store/settings.ts`'s)
   `localStorage` persistence under test.
 
+### Content search (spec §5.2 follow-up)
+
+- `internal/core/textindex.go` classifies small text/code files for content indexing (mirrors
+  `frontend/src/lib/previewKind.ts`'s extension set); `Index` now stores lowercased content
+  alongside each entry, kept in sync via `BuildIndex` and `Indexer.handle` (including on
+  `fsnotify.Write`, not just create/remove). `Search` appends a content-match tier (plain
+  substring, not fuzzy) after all name matches, deduplicated against them. No API/binding changes
+  — `core.Search`'s signature and `SearchResult`/`IndexEntry` shapes are unchanged, so the MCP
+  server's `search` tool and the frontend's search both pick this up automatically. `go test -race
+  -cover ./internal/core/...` green (88.9% coverage).
+
 ### Known limitations / follow-ups
 
 - **Windows adapter is unverified at runtime.** `internal/platform/windows` (Recycle Bin via
@@ -79,3 +90,8 @@ and a real `wails3 package` produced a working signed `bin/vault.app` plus `bin/
 - **MCP tools omit `duplicate`, `compress`, `undo`, `thumbnail`, `watch`, and mutating pins** —
   deliberately out of scope for the initial 9-tool set (list/search/read/move/rename/paste-into/
   new-folder/trash/list-pinned); additive follow-ups if needed.
+- **Content search keeps every indexed text file's full content in RAM** (capped at ~200KB/file
+  via `core.DefaultReadFileMaxBytes`, and only for text-classified extensions), and content
+  matching is an O(indexed text files) substring scan per query rather than a real inverted index.
+  Fine for typical home directories; not benchmarked at the 200k-file/<100ms search target in spec
+  §8 with a large proportion of text/code files.
