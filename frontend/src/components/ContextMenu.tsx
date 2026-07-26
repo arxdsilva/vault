@@ -1,3 +1,4 @@
+import { useLayoutEffect, useState } from 'react'
 import { buildFileActions, type FileActionContext } from '../lib/fileActions'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 
@@ -9,6 +10,9 @@ interface ContextMenuProps {
   onClose: () => void
 }
 
+// Space around the window edge the menu should never sit flush against.
+const EDGE_MARGIN = 8
+
 // Right-click (or Shift+F10/Menu key — spec: keyboard-first) menu: same
 // items as the command palette. role="menu"/"menuitem" with roving focus
 // (arrow keys move real DOM focus between items, not just a highlight) and
@@ -16,6 +20,32 @@ interface ContextMenuProps {
 export function ContextMenu({ x, y, ctx, onRunAction, onClose }: ContextMenuProps) {
   const items = buildFileActions(ctx)
   const containerRef = useFocusTrap<HTMLDivElement>()
+  // The menu is a DOM node confined to the app window, unlike a native
+  // OS context menu — it can never render outside those bounds. So instead
+  // it flips to the opposite side of the click when it would overflow,
+  // the same way native menus do near a screen edge, keeping every item
+  // reachable rather than clipped off-window and permanently unclickable.
+  const [pos, setPos] = useState({ left: x, top: y })
+
+  useLayoutEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+
+    let left = x
+    if (left + rect.width > window.innerWidth - EDGE_MARGIN) {
+      left = x - rect.width // open to the left of the click instead
+    }
+    left = Math.min(Math.max(left, EDGE_MARGIN), Math.max(EDGE_MARGIN, window.innerWidth - rect.width - EDGE_MARGIN))
+
+    let top = y
+    if (top + rect.height > window.innerHeight - EDGE_MARGIN) {
+      top = y - rect.height // open above the click instead
+    }
+    top = Math.min(Math.max(top, EDGE_MARGIN), Math.max(EDGE_MARGIN, window.innerHeight - rect.height - EDGE_MARGIN))
+
+    setPos({ left, top })
+  }, [x, y, items.length])
 
   function menuItems(): HTMLElement[] {
     return Array.from(
@@ -61,7 +91,7 @@ export function ContextMenu({ x, y, ctx, onRunAction, onClose }: ContextMenuProp
         role="menu"
         aria-label="Actions"
         tabIndex={-1}
-        style={{ position: 'absolute', left: x, top: y }}
+        style={{ position: 'absolute', left: pos.left, top: pos.top }}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
         className="flex min-w-[180px] flex-col overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] py-1 shadow-lg"

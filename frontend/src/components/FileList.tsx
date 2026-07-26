@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { File, Folder } from 'lucide-react'
 import type { Entry } from '../lib/vault'
+import { formatDateTime } from '../lib/formatDate'
 import { formatSize } from '../lib/formatSize'
 import { PINNED_DRAG_TYPE } from './PinnedRail'
 import { RenameInput } from './RenameInput'
@@ -17,8 +18,6 @@ interface FileListProps {
   onRenameSubmit?: (entry: Entry, name: string) => void
   onRenameCancel?: () => void
 }
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 
 function optionId(index: number): string {
   return `file-row-${index}`
@@ -144,7 +143,7 @@ export function FileList({
                 <span className="min-w-0 flex-1 truncate">{entry.name}</span>
               )}
               <span className="w-40 shrink-0 truncate text-[var(--muted)]">
-                {dateFormatter.format(new Date(entry.modTime))}
+                {formatDateTime(entry.modTime)}
               </span>
               <span className="w-16 shrink-0 text-right text-[var(--muted)]">
                 {formatSize(entry.size, entry.isDir)}

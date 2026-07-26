@@ -60,6 +60,19 @@ describe('buildFileActions', () => {
     expect(full.find((i) => i.id === 'paste')?.disabled).toBe(false)
   })
 
+  it('enables Properties only when something is selected', () => {
+    const nothingSelected = buildFileActions({ entry: null, currentDir: '/home', pinned: [], clipboardEntry: null })
+    expect(nothingSelected.find((i) => i.id === 'properties')?.disabled).toBe(true)
+
+    const selected = buildFileActions({
+      entry: { path: '/home/report.txt', isDir: false },
+      currentDir: '/home',
+      pinned: [],
+      clipboardEntry: null,
+    })
+    expect(selected.find((i) => i.id === 'properties')?.disabled).toBe(false)
+  })
+
   it('always disables Open With, since no native app picker is wired up yet', () => {
     const items = buildFileActions({
       entry: { path: '/home/report.txt', isDir: false },

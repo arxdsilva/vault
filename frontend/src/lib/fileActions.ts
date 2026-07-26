@@ -32,6 +32,7 @@ export function buildFileActions(ctx: FileActionContext): FileActionItem[] {
     { id: 'paste', label: 'Paste', disabled: ctx.clipboardEntry === null || ctx.currentDir === null },
     { id: 'duplicate', label: 'Duplicate', disabled: !hasEntry },
     { id: 'copy-path', label: 'Copy Path', disabled: !hasEntry },
+    { id: 'properties', label: 'Properties', disabled: !hasEntry },
     { id: 'new-folder', label: 'New Folder', disabled: ctx.currentDir === null },
     { id: 'compress', label: 'Compress', disabled: !hasEntry },
     { id: 'trash', label: 'Move to Trash', disabled: !hasEntry },
