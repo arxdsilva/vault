@@ -4,14 +4,14 @@ How Claude should work on this repository.
 
 ## Overview
 
-Vault is a minimal, cross-platform file manager: fast startup, low resource usage,
-keyboard-first navigation, no feature bloat. It aims to replace Finder (macOS) and Windows File
-Explorer.
+Vault is a minimal, cross-platform file manager: search-first navigation, zero chrome,
+keyboard-first, instant everything. It aims to replace Finder (macOS) and Windows File Explorer.
+Stack: **Wails v3** (Go backend + native webview) + **React 18 + TypeScript + Tailwind** frontend.
 
-**Status:** pre-implementation — the tech stack is not yet finalized. See `README.md` for the
-current stack and build/test commands once it lands.
+**Status:** pre-implementation. See `docs/STATUS.md` for build-order progress.
 
-**Primary source of truth:** `.cursor/rules/` (authoritative). Claude follows the cursor rules
+**Primary source of truth:** `.cursor/rules/` (authoritative) and `docs/SPEC.md` (design intent —
+product vision, layout, screens, non-goals, performance targets). Claude follows the cursor rules
 directly.
 
 ## Architecture — UI-agnostic core, per-OS adapters
@@ -68,4 +68,6 @@ Claude **prepares** commits; the human **executes** them. Read-only inspection o
 
 1. `.cursor/rules/` — authoritative rules
 2. This file — architecture and workflow overview
-3. `README.md` — project goals, status, and stack
+3. `docs/SPEC.md` — full design spec, screens, non-goals
+4. `docs/STATUS.md` — build-order progress
+5. `README.md` — project goals and quickstart commands

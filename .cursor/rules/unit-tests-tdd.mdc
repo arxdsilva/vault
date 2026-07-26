@@ -24,8 +24,11 @@ on the host machine.
 
 ## Placement & isolation
 
-- Co-locate tests with the source they cover, following the convention of the chosen stack.
+- Go: co-located `<source>_test.go`; build fixtures with `t.TempDir()`, never a fixed path.
+- Frontend (React/TS): co-locate `*.test.ts(x)` next to the component/module under test.
 - No network access; no dependency on the host machine's real file layout or environment.
+- Per `docs/SPEC.md` §9: unit tests are required for the frecency ranker and path utilities; at
+  least one e2e smoke test covers launch → search → open → preview.
 
 ## Style
 
@@ -37,3 +40,7 @@ on the host machine.
 ## Coverage
 
 Keep touched areas well covered (aim ≥80%); every behavior change ships with a test.
+
+```sh
+go test -race -cover ./...
+```

@@ -6,17 +6,22 @@ alwaysApply: false
 # Architecture
 
 Vault targets multiple operating systems (macOS + Windows, at minimum) with a single shared UI.
-Keep the parts that differ per-OS isolated from the parts that don't, regardless of which stack
-implements them.
+Stack: Wails v3 (Go backend + native webview) + React/TypeScript/Tailwind frontend. Full design
+spec: `docs/SPEC.md`.
 
 ```
-core/ (or equivalent)   ← file-system operations, indexing, search, sorting/filtering — no OS-specific APIs
+main.go                    ← Wails app entry: window, theming, service registration
+internal/core/             ← platform-neutral: dir listing, metadata, search/frecency index,
+                              file ops (copy/move/rename), trash interface — no OS-specific APIs
         ▲
         │  a narrow, platform-neutral interface (paths, entries, watch events, operations)
         │
-platform/<os>/          ← one adapter per OS: trash/recycle-bin semantics, path quirks, native dialogs,
-                            file-watching APIs, permissions model
-ui/                     ← shared UI layer; talks only to core's interface, never to a platform adapter directly
+internal/platform/darwin/  ← macOS adapter: Trash, FSEvents watcher, path/permission quirks
+internal/platform/windows/ ← Windows adapter: Recycle Bin, ReadDirectoryChangesW watcher, path quirks
+internal/service/          ← thin Wails-bound service structs exposed to the frontend; call only
+                              into internal/core, never straight into a platform adapter
+frontend/                  ← React + TypeScript + Tailwind UI; talks only to internal/service
+                              via generated Wails bindings
 ```
 
 ## Rules
@@ -36,6 +41,3 @@ ui/                     ← shared UI layer; talks only to core's interface, nev
 4. **UI** — wire the UI to the core interface, not to the adapter directly.
 5. **Other platforms** — confirm the feature degrades sensibly (or is stubbed clearly) on OSes
    without an adapter yet.
-
-Update this file once the stack is chosen — name the actual core/UI/adapter directories in place
-of the placeholders above.

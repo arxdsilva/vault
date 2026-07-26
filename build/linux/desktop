@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=Vault
+Comment=A vault application
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/vault %u
+Terminal=false
+Type=Application
+Icon=vault
+Categories=Utility;
+StartupWMClass=vault
+
+ 

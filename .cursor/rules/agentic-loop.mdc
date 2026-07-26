@@ -7,11 +7,10 @@ alwaysApply: true
 
 Follow this loop on **every** development task in this repo.
 
-Vault is a **minimal, cross-platform file manager** aiming to replace Finder (macOS) and Windows Explorer
-File Explorer: fast startup, low resource usage, keyboard-first navigation, no feature bloat.
-The tech stack is not yet finalized — check `README.md` for the current stack and build/test
-commands before assuming a language or framework. Update this rule and `architecture.mdc` once the
-stack lands.
+Vault is a **minimal, cross-platform file manager** (Wails v3 Go backend + React/TypeScript/
+Tailwind frontend) aiming to replace Finder (macOS) and Windows File Explorer: search-first
+navigation, zero chrome, keyboard-first, instant everything. Design spec: `docs/SPEC.md`; build
+progress: `docs/STATUS.md`.
 
 ## The Loop
 
@@ -55,8 +54,17 @@ Understand → Locate → Plan → Implement → Validate → Self-review → (i
 
 ### 5. Validate
 
-Run whatever build/lint/test commands the chosen stack defines (see `README.md` once the stack is
-set). **Do not skip validation** — execute, don't just suggest.
+**Do not skip validation** — execute, don't just suggest.
+
+```sh
+go build ./...
+go vet ./...
+golangci-lint run
+go test -race -cover ./...
+```
+
+For frontend changes, also run the frontend's typecheck (`tsc --noEmit`) and any configured lint/
+test scripts under `frontend/`. Use `wails3 dev` for manual smoke-testing a UI change end to end.
 
 ### 6. Self-review
 
