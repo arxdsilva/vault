@@ -1,0 +1,46 @@
+name: Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/backend.yml"
+
+jobs:
+  test:
+    # macOS and Windows only: Wails v3's application package needs a native
+    # webview (WebKit.framework / WebView2), both present out of the box on
+    # these runners. Linux needs libgtk-3-dev + libwebkit2gtk-*-dev installed
+    # first (see https://v3.wails.io/getting-started/installation/) — that's
+    # unverified in this project (Linux is a stretch goal per README) so it's
+    # left out rather than guessing package names.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go build
+        run: go build ./...
+
+      - name: go test
+        run: go test -race -cover ./...
