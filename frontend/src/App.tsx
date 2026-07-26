@@ -391,7 +391,7 @@ function App() {
         />
       )}
 
-      {/* Main area: pinned rail (48px, spec §4.3) + content + assistant. */}
+      {/* Main area: pinned rail (spec §4.3) + content + assistant. */}
       <div className="flex min-h-0 flex-1">
         <PinnedRail
           pinned={pinned}

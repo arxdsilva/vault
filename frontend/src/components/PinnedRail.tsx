@@ -36,10 +36,11 @@ function itemsLabel(count: number | null): string {
   return `${count} item${count === 1 ? '' : 's'}`
 }
 
-// Slim 48px rail of pinned locations (spec §4.3): icons only, a rich hover
-// card (full path, item count/size, last modified) shown on hover *or*
-// keyboard focus so it's not a mouse-only affordance, reorderable and
-// extendable by dragging a folder onto it.
+// Rail of pinned locations (spec §4.3): icon + name so entries are
+// distinguishable at a glance, plus a rich hover card (full path, item
+// count/size, last modified) shown on hover *or* keyboard focus so it's not
+// a mouse-only affordance, reorderable and extendable by dragging a folder
+// onto it.
 export function PinnedRail({ pinned, currentDir, onNavigate, onAdd, onReorder }: PinnedRailProps) {
   const [dragOverRail, setDragOverRail] = useState(false)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
@@ -124,7 +125,7 @@ export function PinnedRail({ pinned, currentDir, onNavigate, onAdd, onReorder }:
       }}
       onDragLeave={() => setDragOverRail(false)}
       onDrop={handleDropOnRail}
-      className={`flex w-12 shrink-0 flex-col items-center gap-2 border-r border-[var(--border)] py-3 transition-colors duration-150 ${
+      className={`flex w-40 shrink-0 flex-col items-stretch gap-1 border-r border-[var(--border)] px-2 py-3 transition-colors duration-150 ${
         dragOverRail ? 'bg-[var(--accent)]/10' : ''
       }`}
     >
@@ -149,11 +150,12 @@ export function PinnedRail({ pinned, currentDir, onNavigate, onAdd, onReorder }:
           onFocus={(e) => showHoverCard(e.currentTarget, path, 0)}
           onBlur={hideHoverCard}
           onClick={() => onNavigate(path)}
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] transition-colors duration-150 hover:bg-[var(--surface)] hover:text-[var(--fg)] ${
+          className={`flex h-9 w-full shrink-0 items-center gap-2 rounded-[var(--radius)] px-2 transition-colors duration-150 hover:bg-[var(--surface)] hover:text-[var(--fg)] ${
             path === currentDir ? 'bg-[var(--surface)] text-[var(--fg)]' : 'text-[var(--muted)]'
           }`}
         >
-          <Folder size={18} strokeWidth={1.5} aria-hidden="true" />
+          <Folder size={18} strokeWidth={1.5} className="shrink-0" aria-hidden="true" />
+          <span className="min-w-0 flex-1 truncate text-left text-sm">{nameOf(path)}</span>
         </button>
       ))}
 
