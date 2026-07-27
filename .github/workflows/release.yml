@@ -37,7 +37,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -69,9 +69,11 @@ jobs:
           choco install nsis -y --no-progress
           "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
 
+      # pwsh, not bash: git-bash rewrites the /VERSION switch into a
+      # C:/Program Files/Git/VERSION path before makensis ever sees it.
       - name: Verify makensis is on PATH
         if: matrix.platform == 'windows'
-        shell: bash
+        shell: pwsh
         run: makensis /VERSION
 
       - name: Package (macOS universal .dmg)
