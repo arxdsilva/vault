@@ -1,9 +1,16 @@
 package core
 
 // PermissionStatus reports whether the OS has granted Vault broad
-// filesystem access.
+// filesystem access. Title, Message, and SettingsLabel explain the gap in
+// the OS's own terms (e.g. macOS's "Full Disk Access" vs. Windows'
+// "Controlled folder access") and are populated only when Granted is
+// false — each adapter owns this copy since it alone knows which
+// OS-specific mechanism is in play.
 type PermissionStatus struct {
-	Granted bool `json:"granted"`
+	Granted       bool   `json:"granted"`
+	Title         string `json:"title"`
+	Message       string `json:"message"`
+	SettingsLabel string `json:"settingsLabel"`
 }
 
 // PermissionAdapter checks and requests the OS-level permission needed to

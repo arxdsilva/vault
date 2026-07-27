@@ -1,19 +1,23 @@
 import { ShieldAlert } from 'lucide-react'
 import { useFocusTrap } from '../hooks/useFocusTrap'
+import type { PermissionStatus } from '../lib/vault'
 
 interface PermissionPromptProps {
+  status: PermissionStatus
   onOpenSettings: () => void
   onDismiss: () => void
 }
 
 const HEADING_ID = 'permission-prompt-heading'
 
-// Full Disk Access explainer for macOS: without it, Desktop/Documents/
-// Downloads/removable & network volumes each trigger their own separate
-// system consent prompt the first time they're visited. Granting it once
-// here avoids that one-by-one nagging. Dismissable rather than blocking —
-// the app remains usable without it, just noisier.
-export function PermissionPrompt({ onOpenSettings, onDismiss }: PermissionPromptProps) {
+// Explains an ungranted OS-level filesystem permission (macOS Full Disk
+// Access, or Windows Controlled Folder Access when the user has turned it
+// on) and links straight to the right settings surface. All copy comes
+// from status — each platform adapter owns its own terminology (see
+// core.PermissionStatus) — so this component has no OS-specific text.
+// Dismissable rather than blocking — the app remains usable without it,
+// just noisier (or, on Windows, with silently failed writes).
+export function PermissionPrompt({ status, onOpenSettings, onDismiss }: PermissionPromptProps) {
   const containerRef = useFocusTrap<HTMLDivElement>()
 
   return (
@@ -37,15 +41,13 @@ export function PermissionPrompt({ onOpenSettings, onDismiss }: PermissionPrompt
           <ShieldAlert size={20} className="mt-0.5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
           <div className="flex flex-col gap-1">
             <h1 id={HEADING_ID} className="text-sm font-medium">
-              Grant Full Disk Access
+              {status.title}
             </h1>
-            <p className="text-xs text-[var(--muted)]">
-              Without it, macOS asks for permission separately the first time you open Desktop, Documents,
-              Downloads, or an external drive. Granting Full Disk Access once avoids the repeated prompts.
-            </p>
-            <p className="text-xs text-[var(--muted)]">
-              After enabling Vault in the list that opens, quit and reopen the app.
-            </p>
+            {status.message.split('\n\n').map((paragraph) => (
+              <p key={paragraph} className="text-xs text-[var(--muted)]">
+                {paragraph}
+              </p>
+            ))}
           </div>
         </div>
 
@@ -62,7 +64,7 @@ export function PermissionPrompt({ onOpenSettings, onDismiss }: PermissionPrompt
             onClick={onOpenSettings}
             className="rounded-[calc(var(--radius)-2px)] bg-[var(--accent)] px-3 py-1 text-xs font-medium text-white"
           >
-            Open System Settings
+            {status.settingsLabel}
           </button>
         </div>
       </div>

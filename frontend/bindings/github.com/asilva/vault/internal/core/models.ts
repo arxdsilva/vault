@@ -24,10 +24,17 @@ export interface IndexEntry {
 
 /**
  * PermissionStatus reports whether the OS has granted Vault broad
- * filesystem access.
+ * filesystem access. Title, Message, and SettingsLabel explain the gap in
+ * the OS's own terms (e.g. macOS's "Full Disk Access" vs. Windows'
+ * "Controlled folder access") and are populated only when Granted is
+ * false — each adapter owns this copy since it alone knows which
+ * OS-specific mechanism is in play.
  */
 export interface PermissionStatus {
     "granted": boolean;
+    "title": string;
+    "message": string;
+    "settingsLabel": string;
 }
 
 /**

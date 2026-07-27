@@ -1,12 +1,12 @@
-//go:build !darwin
+//go:build !darwin && !windows
 
 package platform
 
 import "github.com/asilva/vault/internal/core"
 
-// grantedAdapter reports Full Disk Access-equivalent as always granted:
-// only macOS gates protected folders (Desktop, Documents, Downloads, …)
-// behind a consent prompt per location.
+// grantedAdapter reports the permission as always granted: Linux (and any
+// other non-macOS, non-Windows target) has no per-folder consent system or
+// opt-in write-blocking feature to guard against.
 type grantedAdapter struct{}
 
 func (grantedAdapter) Check() core.PermissionStatus { return core.PermissionStatus{Granted: true} }

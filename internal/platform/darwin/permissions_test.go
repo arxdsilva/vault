@@ -29,8 +29,12 @@ func TestPermissionsCheck(t *testing.T) {
 		t.Cleanup(func() { os.Chmod(probe, 0o644) })
 
 		p := &Permissions{ProbePath: probe}
-		if got := p.Check(); got.Granted {
+		got := p.Check()
+		if got.Granted {
 			t.Errorf("Check() = %+v, want not Granted", got)
+		}
+		if got.Title == "" || got.Message == "" || got.SettingsLabel == "" {
+			t.Errorf("Check() = %+v, want Title/Message/SettingsLabel populated when not granted", got)
 		}
 	})
 

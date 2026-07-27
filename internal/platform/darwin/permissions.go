@@ -49,15 +49,20 @@ func (p *Permissions) probePath() (string, error) {
 // Check reports whether Full Disk Access is currently granted.
 func (p *Permissions) Check() core.PermissionStatus {
 	path, err := p.probePath()
-	if err != nil {
-		return core.PermissionStatus{Granted: false}
+	if err == nil {
+		if f, err := os.Open(path); err == nil {
+			f.Close()
+			return core.PermissionStatus{Granted: true}
+		}
 	}
-	f, err := os.Open(path)
-	if err != nil {
-		return core.PermissionStatus{Granted: false}
+	return core.PermissionStatus{
+		Granted: false,
+		Title:   "Grant Full Disk Access",
+		Message: "Without it, macOS asks for permission separately the first time you open Desktop, " +
+			"Documents, Downloads, or an external drive. Granting Full Disk Access once avoids the repeated prompts.\n\n" +
+			"After enabling Vault in the list that opens, quit and reopen the app.",
+		SettingsLabel: "Open System Settings",
 	}
-	f.Close()
-	return core.PermissionStatus{Granted: true}
 }
 
 func (p *Permissions) opener() func(string) error {

@@ -550,8 +550,12 @@ function App() {
 
       {helpOpen && <ShortcutHelp onClose={() => setHelpOpen(false)} />}
 
-      {permissionPrompt.visible && (
-        <PermissionPrompt onOpenSettings={permissionPrompt.openSettings} onDismiss={permissionPrompt.dismiss} />
+      {permissionPrompt.status && (
+        <PermissionPrompt
+          status={permissionPrompt.status}
+          onOpenSettings={permissionPrompt.openSettings}
+          onDismiss={permissionPrompt.dismiss}
+        />
       )}
 
       <Toast />

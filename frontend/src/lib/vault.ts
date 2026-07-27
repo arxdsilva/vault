@@ -42,6 +42,9 @@ export interface Volume {
 
 export interface PermissionStatus {
   granted: boolean
+  title: string
+  message: string
+  settingsLabel: string
 }
 
 const FS_CHANGE_EVENT = 'vault:fschange'
