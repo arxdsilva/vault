@@ -191,7 +191,9 @@ function App() {
       }
       if ((e.key === 'Delete' || (mod && e.key === 'Backspace')) && !overlayOpen && selectedEntries.length > 0) {
         e.preventDefault()
-        Promise.all(selectedEntries.map((entry) => vault.delete(entry.path))).catch((err) => showError(String(err)))
+        Promise.all(selectedEntries.map((entry) => vault.delete(entry.path)))
+          .then(clearSelection)
+          .catch((err) => showError(String(err)))
         return
       }
 
@@ -309,7 +311,9 @@ function App() {
         const name = entry.path.slice(entry.path.lastIndexOf('/') + 1)
         return vault.move(entry.path, `${targetDir}/${name}`)
       }),
-    ).catch((err) => showError(String(err)))
+    )
+      .then(clearSelection)
+      .catch((err) => showError(String(err)))
   }
 
   function handleRunAction(id: string) {
@@ -353,7 +357,9 @@ function App() {
         break
       case 'trash':
         if (entries.length > 0) {
-          Promise.all(entries.map((e) => vault.delete(e.path))).catch((err) => showError(String(err)))
+          Promise.all(entries.map((e) => vault.delete(e.path)))
+            .then(clearSelection)
+            .catch((err) => showError(String(err)))
         }
         break
       case 'pin':

@@ -38,10 +38,19 @@ export function useMultiSelect(count: number, clearSignal?: unknown) {
       return
     }
     setMarked(new Set())
+    // -1 is "no focus": unlike plain click/arrow movement, an explicit clear
+    // (Escape, the action bar's Clear button, or finishing a destructive
+    // action like Delete/Move) should leave nothing looking selected —
+    // including the focus-fallback effective selection below — not just
+    // land the cursor back on whatever now occupies the same row.
+    setFocus(-1)
   }, [clearSignal])
 
   useEffect(() => {
-    const nextFocus = clampIndex(focus, count)
+    // A sentinel "no focus" stays put across a list-length change (e.g. the
+    // deletion that triggered it reloading the directory) — only a real
+    // focus index needs re-clamping into range.
+    const nextFocus = focus === -1 ? -1 : clampIndex(focus, count)
     setFocus(nextFocus)
     setMarked((s) => clampSelection(s, count))
     if (anchorRef.current >= count) anchorRef.current = clampIndex(anchorRef.current, count)

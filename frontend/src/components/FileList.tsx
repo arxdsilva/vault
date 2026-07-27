@@ -93,7 +93,7 @@ export function FileList({
     } else if (e.key === 'Enter') {
       e.preventDefault()
       if (entries[focus]) onOpen(entries[focus])
-    } else if (e.key.toLowerCase() === 'x' && !mod && !e.altKey) {
+    } else if (e.key.toLowerCase() === 'x' && !mod && !e.altKey && focus >= 0) {
       // Gmail-style toggle: "x" checks/unchecks the focused row without
       // moving focus, building a selection one keystroke at a time.
       e.preventDefault()
