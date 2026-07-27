@@ -3,8 +3,8 @@
 package platform
 
 import (
-	"github.com/asilva/vault/internal/core"
-	"github.com/asilva/vault/internal/platform/windows"
+	"github.com/arxdsilva/vault/internal/core"
+	"github.com/arxdsilva/vault/internal/platform/windows"
 )
 
 // NewTrasher returns the OS-appropriate core.Trasher for the current build

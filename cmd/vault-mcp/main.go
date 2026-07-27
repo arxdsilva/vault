@@ -12,8 +12,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/asilva/vault/internal/mcp"
-	"github.com/asilva/vault/internal/platform"
+	"github.com/arxdsilva/vault/internal/mcp"
+	"github.com/arxdsilva/vault/internal/platform"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

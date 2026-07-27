@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/asilva/vault/internal/platform"
-	"github.com/asilva/vault/internal/service"
+	"github.com/arxdsilva/vault/internal/platform"
+	"github.com/arxdsilva/vault/internal/service"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/services/fileserver"
 )
@@ -41,7 +41,7 @@ func main() {
 	app.RegisterService(application.NewService(service.NewSearch(home, frecencyPath)))
 
 	pinnedPath := filepath.Join(configDir, "vault", "pinned.json")
-	app.RegisterService(application.NewService(service.NewPinned(pinnedPath, home)))
+	app.RegisterService(application.NewService(service.NewPinned(pinnedPath, home, platform.ApplicationsDir())))
 
 	app.RegisterService(application.NewService(service.NewVolumes(platform.NewVolumes(), app.Event)))
 

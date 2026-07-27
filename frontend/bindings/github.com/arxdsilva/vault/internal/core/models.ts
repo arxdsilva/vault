@@ -41,7 +41,10 @@ export interface PermissionStatus {
  * Volume describes one visible disk — internal, external/USB, mounted disk
  * image, or network share — shown in the pinned rail (spec §4.3) alongside
  * pinned folders. Ejectable is false for the boot/system disk, which can't
- * be unmounted while running from it.
+ * be unmounted while running from it. IsNetwork splits already-mounted
+ * network shares (SMB/NFS/AFP/CIFS) into their own "Network" section of the
+ * rail, distinct from local/removable "Volumes" — it does not mean live
+ * network-neighborhood discovery of unmounted shares.
  */
 export interface Volume {
     "path": string;
@@ -49,4 +52,5 @@ export interface Volume {
     "ejectable": boolean;
     "totalBytes": number;
     "freeBytes": number;
+    "isNetwork": boolean;
 }

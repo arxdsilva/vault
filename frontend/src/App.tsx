@@ -49,6 +49,7 @@ function App() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [clearSelectionSignal, setClearSelectionSignal] = useState(0)
   const [markedCount, setMarkedCount] = useState(0)
+  const [trashPath, setTrashPath] = useState<string | null>(null)
   const permissionPrompt = usePermissionPrompt()
   const {
     accent,
@@ -64,7 +65,7 @@ function App() {
   const searchRef = useRef<HTMLInputElement | null>(null)
   const { currentDir, navigate, parentOf, sortFor, setSort } = useNavigation()
   const sort = currentDir ? sortFor(currentDir) : 'name'
-  const { entries, error } = useDirectory(currentDir, sort, showHiddenFiles)
+  const { entries, error, permission: dirPermission } = useDirectory(currentDir, sort, showHiddenFiles)
   const { results: searchResults, label: searchStatusLabel } = useSearch(query, currentDir)
   const searching = query.trim() !== ''
   const { pinned, add: addPinned, remove: removePinned, reorder: reorderPinned } = usePinned()
@@ -114,6 +115,15 @@ function App() {
   // focused the moment the window appears.
   useEffect(() => {
     searchRef.current?.focus()
+  }, [])
+
+  // The Trash rail entry (spec §4.3): resolved once, since the OS trash's
+  // location never changes during a session.
+  useEffect(() => {
+    vault
+      .trashLocation()
+      .then(setTrashPath)
+      .catch(() => {})
   }, [])
 
   async function handlePaste() {
@@ -466,6 +476,7 @@ function App() {
         <PinnedRail
           pinned={pinned}
           volumes={volumes}
+          trashPath={trashPath}
           currentDir={currentDir}
           onNavigate={navigate}
           onAdd={addPinned}
@@ -507,7 +518,27 @@ function App() {
                 </select>
               </div>
 
-              {error ? (
+              {error && dirPermission ? (
+                <div
+                  role="alert"
+                  className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-[var(--muted)]"
+                >
+                  <AlertCircle size={28} strokeWidth={1.5} aria-hidden="true" />
+                  <p className="text-sm font-medium text-[var(--fg)]">{dirPermission.title}</p>
+                  {dirPermission.message.split('\n\n').map((paragraph) => (
+                    <p key={paragraph} className="max-w-sm text-xs">
+                      {paragraph}
+                    </p>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => vault.openPermissionSettings().catch(() => {})}
+                    className="mt-1 rounded-[calc(var(--radius)-2px)] bg-[var(--accent)] px-3 py-1 text-xs font-medium text-white"
+                  >
+                    {dirPermission.settingsLabel}
+                  </button>
+                </div>
+              ) : error ? (
                 <div
                   role="alert"
                   className="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--muted)]"

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asilva/vault/internal/core"
+	"github.com/arxdsilva/vault/internal/core"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 

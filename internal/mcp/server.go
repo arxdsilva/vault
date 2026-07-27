@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/asilva/vault/internal/core"
+	"github.com/arxdsilva/vault/internal/core"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

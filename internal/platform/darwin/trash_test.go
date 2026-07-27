@@ -85,6 +85,22 @@ func TestTrash(t *testing.T) {
 		}
 	})
 
+	t.Run("Location returns and creates the trash directory", func(t *testing.T) {
+		trashDir := filepath.Join(t.TempDir(), "not-created-yet")
+		tr := &Trash{Dir: trashDir}
+
+		got, err := tr.Location()
+		if err != nil {
+			t.Fatalf("Location: %v", err)
+		}
+		if got != trashDir {
+			t.Errorf("Location() = %q, want %q", got, trashDir)
+		}
+		if info, err := os.Stat(trashDir); err != nil || !info.IsDir() {
+			t.Errorf("expected Location to create %q as a directory", trashDir)
+		}
+	})
+
 	t.Run("NewTrash resolves ~/.Trash under the current user's home", func(t *testing.T) {
 		home := t.TempDir()
 		t.Setenv("HOME", home)

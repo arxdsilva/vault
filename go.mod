@@ -1,4 +1,4 @@
-module github.com/asilva/vault
+module github.com/arxdsilva/vault
 
 go 1.25.0
 

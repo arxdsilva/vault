@@ -1,8 +1,8 @@
-import * as Files from '../../bindings/github.com/asilva/vault/internal/service/files'
-import * as SearchService from '../../bindings/github.com/asilva/vault/internal/service/search'
-import * as PinnedService from '../../bindings/github.com/asilva/vault/internal/service/pinned'
-import * as VolumesService from '../../bindings/github.com/asilva/vault/internal/service/volumes'
-import * as PermissionsService from '../../bindings/github.com/asilva/vault/internal/service/permissions'
+import * as Files from '../../bindings/github.com/arxdsilva/vault/internal/service/files'
+import * as SearchService from '../../bindings/github.com/arxdsilva/vault/internal/service/search'
+import * as PinnedService from '../../bindings/github.com/arxdsilva/vault/internal/service/pinned'
+import * as VolumesService from '../../bindings/github.com/arxdsilva/vault/internal/service/volumes'
+import * as PermissionsService from '../../bindings/github.com/arxdsilva/vault/internal/service/permissions'
 import { Clipboard, Events } from '@wailsio/runtime'
 
 export interface Entry {
@@ -38,6 +38,7 @@ export interface Volume {
   ejectable: boolean
   totalBytes: number
   freeBytes: number
+  isNetwork: boolean
 }
 
 export interface PermissionStatus {
@@ -72,6 +73,7 @@ export const vault = {
   paste: (src: string, destDir: string) => Files.Paste(src, destDir),
   copyPathToClipboard: (path: string) => Clipboard.SetText(path),
   undo: () => Files.Undo(),
+  trashLocation: () => Files.TrashLocation(),
   thumbnail: (path: string) => Files.Thumbnail(path),
   watch: (dir: string) => Files.Watch(dir),
   unwatch: () => Files.Unwatch(),

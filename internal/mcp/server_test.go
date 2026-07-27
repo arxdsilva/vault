@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/asilva/vault/internal/core"
+	"github.com/arxdsilva/vault/internal/core"
 )
 
 type fakeTrasher struct {
@@ -14,6 +14,10 @@ type fakeTrasher struct {
 func (f *fakeTrasher) Trash(path string) error {
 	f.trashed = append(f.trashed, path)
 	return nil
+}
+
+func (f *fakeTrasher) Location() (string, error) {
+	return "/fake-trash", nil
 }
 
 // newTestServer starts a Server rooted at a fresh temp dir, cleaned up

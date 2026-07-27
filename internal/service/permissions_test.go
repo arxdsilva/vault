@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/asilva/vault/internal/core"
+	"github.com/arxdsilva/vault/internal/core"
 )
 
 type fakePermissionAdapter struct {

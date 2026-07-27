@@ -20,21 +20,21 @@ import * as core$0 from "../core/models.js";
  * created.
  */
 export function Compress(path: string): $CancellablePromise<string> {
-    return $Call.ByID(2855711300, path);
+    return $Call.ByID(311591688, path);
 }
 
 /**
  * Copy copies src to dst.
  */
 export function Copy(src: string, dst: string): $CancellablePromise<void> {
-    return $Call.ByID(2275992261, src, dst);
+    return $Call.ByID(1916939481, src, dst);
 }
 
 /**
  * Delete moves path to the OS trash/recycle bin.
  */
 export function Delete(path: string): $CancellablePromise<void> {
-    return $Call.ByID(390520339, path);
+    return $Call.ByID(3593818975, path);
 }
 
 /**
@@ -42,28 +42,28 @@ export function Delete(path: string): $CancellablePromise<void> {
  * returns the path created.
  */
 export function Duplicate(path: string): $CancellablePromise<string> {
-    return $Call.ByID(2918441945, path);
+    return $Call.ByID(2425287669, path);
 }
 
 /**
  * HomeDir returns the current user's home directory.
  */
 export function HomeDir(): $CancellablePromise<string> {
-    return $Call.ByID(3898189838);
+    return $Call.ByID(378008242);
 }
 
 /**
  * List returns the entries directly inside dir.
  */
 export function List(dir: string): $CancellablePromise<core$0.Entry[] | null> {
-    return $Call.ByID(3745653456, dir);
+    return $Call.ByID(3487008956, dir);
 }
 
 /**
  * Move relocates src to dst. The move can be reversed with Undo.
  */
 export function Move(src: string, dst: string): $CancellablePromise<void> {
-    return $Call.ByID(1165102389, src, dst);
+    return $Call.ByID(2905231169, src, dst);
 }
 
 /**
@@ -71,7 +71,7 @@ export function Move(src: string, dst: string): $CancellablePromise<void> {
  * path actually created.
  */
 export function NewFolder(parent: string, name: string): $CancellablePromise<string> {
-    return $Call.ByID(1075437494, parent, name);
+    return $Call.ByID(2787709306, parent, name);
 }
 
 /**
@@ -79,14 +79,14 @@ export function NewFolder(parent: string, name: string): $CancellablePromise<str
  * returns the path created. Used for clipboard-style copy/paste.
  */
 export function Paste(src: string, destDir: string): $CancellablePromise<string> {
-    return $Call.ByID(3342226755, src, destDir);
+    return $Call.ByID(803467703, src, destDir);
 }
 
 /**
  * Rename renames oldPath to newPath. The rename can be reversed with Undo.
  */
 export function Rename(oldPath: string, newPath: string): $CancellablePromise<void> {
-    return $Call.ByID(1466778858, oldPath, newPath);
+    return $Call.ByID(725966966, oldPath, newPath);
 }
 
 /**
@@ -95,7 +95,7 @@ export function Rename(oldPath: string, newPath: string): $CancellablePromise<vo
  * directory's children.
  */
 export function Stat(path: string): $CancellablePromise<core$0.Entry> {
-    return $Call.ByID(3059962874, path);
+    return $Call.ByID(4287395510, path);
 }
 
 /**
@@ -106,7 +106,16 @@ export function Stat(path: string): $CancellablePromise<core$0.Entry> {
  * back to a generic icon.
  */
 export function Thumbnail(path: string): $CancellablePromise<string> {
-    return $Call.ByID(393980260, path);
+    return $Call.ByID(3922186720, path);
+}
+
+/**
+ * TrashLocation returns the OS trash's browsable directory (see
+ * core.Trasher.Location), so the frontend can pin/navigate to it like any
+ * other folder.
+ */
+export function TrashLocation(): $CancellablePromise<string> {
+    return $Call.ByID(100760869);
 }
 
 /**
@@ -114,14 +123,14 @@ export function Thumbnail(path: string): $CancellablePromise<string> {
  * It returns an error if there is nothing left to undo.
  */
 export function Undo(): $CancellablePromise<void> {
-    return $Call.ByID(894952534);
+    return $Call.ByID(3721569506);
 }
 
 /**
  * Unwatch stops the active watch, if any.
  */
 export function Unwatch(): $CancellablePromise<void> {
-    return $Call.ByID(2128773514);
+    return $Call.ByID(1249444958);
 }
 
 /**
@@ -130,5 +139,5 @@ export function Unwatch(): $CancellablePromise<void> {
  * again with a different directory or Unwatch is called.
  */
 export function Watch(dir: string): $CancellablePromise<void> {
-    return $Call.ByID(1041955987, dir);
+    return $Call.ByID(1230832071, dir);
 }

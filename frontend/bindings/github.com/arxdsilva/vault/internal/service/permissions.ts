@@ -22,12 +22,12 @@ import * as core$0 from "../core/models.js";
  * OpenSettings opens the OS's settings surface for granting the permission.
  */
 export function OpenSettings(): $CancellablePromise<void> {
-    return $Call.ByID(2008111940);
+    return $Call.ByID(1493708040);
 }
 
 /**
  * Status reports whether the OS has granted Vault broad filesystem access.
  */
 export function Status(): $CancellablePromise<core$0.PermissionStatus> {
-    return $Call.ByID(3116678271);
+    return $Call.ByID(3178411003);
 }

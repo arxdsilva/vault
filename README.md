@@ -192,4 +192,4 @@ available locally.
 
 ## License
 
-TBD
+[MIT](LICENSE)

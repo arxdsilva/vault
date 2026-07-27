@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { filterHiddenEntries } from '../lib/hiddenFiles'
-import { vault, type Entry } from '../lib/vault'
+import { vault, type Entry, type PermissionStatus } from '../lib/vault'
 import type { SortKey } from '../store/navigation'
 
 interface DirectoryState {
   entries: Entry[]
   loading: boolean
   error: string | null
+  // Set alongside error when an ungranted OS permission (e.g. macOS Full
+  // Disk Access, required to read ~/.Trash) is the likely cause, so the UI
+  // can point the user at settings instead of showing a raw OS error string.
+  permission: PermissionStatus | null
 }
 
 const comparators: Record<SortKey, (a: Entry, b: Entry) => number> = {
@@ -27,23 +31,39 @@ function extOf(name: string): string {
 // covers directories that have actually been browsed to, not the whole home
 // tree up front, so every directory this hook loads is also visited.
 export function useDirectory(dir: string | null, sort: SortKey, showHidden: boolean): DirectoryState {
-  const [state, setState] = useState<DirectoryState>({ entries: [], loading: false, error: null })
+  const [state, setState] = useState<DirectoryState>({
+    entries: [],
+    loading: false,
+    error: null,
+    permission: null,
+  })
 
   useEffect(() => {
     if (dir === null) {
-      setState({ entries: [], loading: false, error: null })
+      setState({ entries: [], loading: false, error: null, permission: null })
       return
     }
 
     let cancelled = false
-    setState((s) => ({ ...s, loading: true, error: null }))
+    setState((s) => ({ ...s, loading: true, error: null, permission: null }))
 
     async function load() {
       try {
         const entries = await vault.list(dir as string)
-        if (!cancelled) setState({ entries, loading: false, error: null })
+        if (!cancelled) setState({ entries, loading: false, error: null, permission: null })
       } catch (err) {
-        if (!cancelled) setState({ entries: [], loading: false, error: String(err) })
+        if (cancelled) return
+        // An ungranted OS permission (e.g. macOS Full Disk Access, required
+        // to read ~/.Trash) is a likely cause — surface it so the UI can
+        // point at settings instead of just showing the raw OS error.
+        const permission = await vault.permissionStatus().catch(() => null)
+        if (cancelled) return
+        setState({
+          entries: [],
+          loading: false,
+          error: String(err),
+          permission: permission && !permission.granted ? permission : null,
+        })
       }
     }
     load()

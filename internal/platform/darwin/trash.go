@@ -33,6 +33,20 @@ func (t *Trash) dir() (string, error) {
 	return filepath.Join(home, ".Trash"), nil
 }
 
+// Location returns ~/.Trash, creating it if it doesn't exist yet — a real,
+// browsable folder (trashed files keep their original names), the same one
+// Finder's Trash icon shows.
+func (t *Trash) Location() (string, error) {
+	dir, err := t.dir()
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
 // Trash moves path into the trash directory, disambiguating a name
 // collision with a numeric suffix the way Finder does.
 func (t *Trash) Trash(path string) error {

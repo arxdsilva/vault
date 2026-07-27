@@ -149,4 +149,29 @@ func TestDefaultPins(t *testing.T) {
 			t.Errorf("DefaultPins() = %v, want none", got)
 		}
 	})
+
+	t.Run("includes an extra candidate that exists", func(t *testing.T) {
+		home := t.TempDir()
+		extra := t.TempDir()
+
+		got := DefaultPins(home, extra)
+		found := false
+		for _, p := range got {
+			if p == extra {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("DefaultPins(%q, %q) = %v, want it to include the extra candidate", home, extra, got)
+		}
+	})
+
+	t.Run("silently drops an extra candidate that doesn't exist (e.g. an OS with no equivalent)", func(t *testing.T) {
+		home := t.TempDir()
+
+		got := DefaultPins(home, "")
+		if len(got) != 1 || got[0] != home {
+			t.Errorf("DefaultPins(%q, \"\") = %v, want [%q]", home, got, home)
+		}
+	})
 }

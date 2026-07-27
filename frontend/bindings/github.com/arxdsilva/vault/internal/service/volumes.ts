@@ -20,12 +20,12 @@ import * as core$0 from "../core/models.js";
  * Eject unmounts the volume at path.
  */
 export function Eject(path: string): $CancellablePromise<void> {
-    return $Call.ByID(3023635305, path);
+    return $Call.ByID(853998045, path);
 }
 
 /**
  * List returns the currently mounted volumes.
  */
 export function List(): $CancellablePromise<core$0.Volume[] | null> {
-    return $Call.ByID(4025362472);
+    return $Call.ByID(2692436524);
 }

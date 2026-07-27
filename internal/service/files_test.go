@@ -42,6 +42,10 @@ func (f *fakeTrasher) Trash(path string) error {
 	return nil
 }
 
+func (f *fakeTrasher) Location() (string, error) {
+	return "/fake-trash", nil
+}
+
 type emitCall struct {
 	name string
 	data []any
@@ -373,6 +377,18 @@ func TestFilesDelete(t *testing.T) {
 			t.Fatal("Delete: got nil error, want non-nil")
 		}
 	})
+}
+
+func TestFilesTrashLocation(t *testing.T) {
+	svc := New(&fakeTrasher{}, newFakeEmitter())
+
+	got, err := svc.TrashLocation()
+	if err != nil {
+		t.Fatalf("TrashLocation: %v", err)
+	}
+	if got != "/fake-trash" {
+		t.Errorf("TrashLocation() = %q, want %q", got, "/fake-trash")
+	}
 }
 
 func TestFilesWatch(t *testing.T) {

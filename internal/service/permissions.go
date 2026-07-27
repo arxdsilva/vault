@@ -1,6 +1,6 @@
 package service
 
-import "github.com/asilva/vault/internal/core"
+import "github.com/arxdsilva/vault/internal/core"
 
 // Permissions is the Wails service exposing the OS-level filesystem
 // permission check (macOS Full Disk Access) to the frontend, so Vault can

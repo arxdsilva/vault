@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Folder, HardDrive } from 'lucide-react'
+import { Folder, HardDrive, Network, Trash2 } from 'lucide-react'
 import { vault, type Entry, type Volume } from '../lib/vault'
 import { formatRelativeTime } from '../lib/relativeTime'
 import { formatSize } from '../lib/formatSize'
@@ -35,6 +35,7 @@ interface HoverCardState {
 interface PinnedRailProps {
   pinned: string[]
   volumes: Volume[]
+  trashPath: string | null
   currentDir: string | null
   onNavigate: (path: string) => void
   onAdd: (path: string) => void
@@ -62,12 +63,15 @@ function itemsLabel(count: number | null): string {
 export function PinnedRail({
   pinned,
   volumes,
+  trashPath,
   currentDir,
   onNavigate,
   onAdd,
   onReorder,
   onEjectVolume,
 }: PinnedRailProps) {
+  const localVolumes = volumes.filter((v) => !v.isNetwork)
+  const networkVolumes = volumes.filter((v) => v.isNetwork)
   const [dragOverRail, setDragOverRail] = useState(false)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [hoverCard, setHoverCard] = useState<HoverCardState | null>(null)
@@ -166,6 +170,43 @@ export function PinnedRail({
     if (path && !pinned.includes(path)) onAdd(path)
   }
 
+  // Shared row for both the "Volumes" (local/removable) and "Network"
+  // sections below — same layout and hover-card/eject behavior, only the
+  // icon differs (HardDrive vs. Network).
+  function renderVolumeRow(volume: Volume, Icon: typeof HardDrive) {
+    return (
+      <div key={volume.path} className="group flex h-9 w-full shrink-0 items-center gap-1">
+        <button
+          type="button"
+          aria-label={volume.name}
+          aria-current={volume.path === currentDir ? 'true' : undefined}
+          aria-describedby={hoverCard?.path === volume.path ? HOVER_CARD_ID : undefined}
+          onMouseEnter={(e) => showHoverCard(e.currentTarget, volume.path, HOVER_DELAY_MS)}
+          onMouseLeave={hideHoverCard}
+          onFocus={(e) => showHoverCard(e.currentTarget, volume.path, 0)}
+          onBlur={hideHoverCard}
+          onClick={() => onNavigate(volume.path)}
+          className={`flex h-9 min-w-0 flex-1 items-center gap-2 rounded-[var(--radius)] px-2 transition-colors duration-150 hover:bg-[var(--surface)] hover:text-[var(--fg)] ${
+            volume.path === currentDir ? 'bg-[var(--surface)] text-[var(--fg)]' : 'text-[var(--muted)]'
+          }`}
+        >
+          <Icon size={18} strokeWidth={1.5} className="shrink-0" aria-hidden="true" />
+          <span className="min-w-0 flex-1 truncate text-left text-sm">{volume.name}</span>
+        </button>
+        {volume.ejectable && (
+          <button
+            type="button"
+            aria-label={`Eject ${volume.name}`}
+            onClick={() => onEjectVolume(volume.path)}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[var(--muted)] opacity-0 transition-opacity duration-150 hover:bg-[var(--border)] hover:text-[var(--fg)] focus-visible:opacity-100 group-hover:opacity-100"
+          >
+            <span aria-hidden="true">⏏</span>
+          </button>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="relative flex shrink-0" style={{ width: railWidth }}>
       <div
@@ -211,43 +252,41 @@ export function PinnedRail({
           ))}
         </div>
 
-        {volumes.length > 0 && (
+        {localVolumes.length > 0 && (
           <>
             <div className="my-1 border-t border-[var(--border)]" />
             <p className="px-2 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">Volumes</p>
             <div role="group" aria-label="Volumes" className="flex flex-col gap-1">
-              {volumes.map((volume) => (
-                <div key={volume.path} className="group flex h-9 w-full shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    aria-label={volume.name}
-                    aria-current={volume.path === currentDir ? 'true' : undefined}
-                    aria-describedby={hoverCard?.path === volume.path ? HOVER_CARD_ID : undefined}
-                    onMouseEnter={(e) => showHoverCard(e.currentTarget, volume.path, HOVER_DELAY_MS)}
-                    onMouseLeave={hideHoverCard}
-                    onFocus={(e) => showHoverCard(e.currentTarget, volume.path, 0)}
-                    onBlur={hideHoverCard}
-                    onClick={() => onNavigate(volume.path)}
-                    className={`flex h-9 min-w-0 flex-1 items-center gap-2 rounded-[var(--radius)] px-2 transition-colors duration-150 hover:bg-[var(--surface)] hover:text-[var(--fg)] ${
-                      volume.path === currentDir ? 'bg-[var(--surface)] text-[var(--fg)]' : 'text-[var(--muted)]'
-                    }`}
-                  >
-                    <HardDrive size={18} strokeWidth={1.5} className="shrink-0" aria-hidden="true" />
-                    <span className="min-w-0 flex-1 truncate text-left text-sm">{volume.name}</span>
-                  </button>
-                  {volume.ejectable && (
-                    <button
-                      type="button"
-                      aria-label={`Eject ${volume.name}`}
-                      onClick={() => onEjectVolume(volume.path)}
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[var(--muted)] opacity-0 transition-opacity duration-150 hover:bg-[var(--border)] hover:text-[var(--fg)] focus-visible:opacity-100 group-hover:opacity-100"
-                    >
-                      <span aria-hidden="true">⏏</span>
-                    </button>
-                  )}
-                </div>
-              ))}
+              {localVolumes.map((volume) => renderVolumeRow(volume, HardDrive))}
             </div>
+          </>
+        )}
+
+        {networkVolumes.length > 0 && (
+          <>
+            <div className="my-1 border-t border-[var(--border)]" />
+            <p className="px-2 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">Network</p>
+            <div role="group" aria-label="Network" className="flex flex-col gap-1">
+              {networkVolumes.map((volume) => renderVolumeRow(volume, Network))}
+            </div>
+          </>
+        )}
+
+        {trashPath && (
+          <>
+            <div className="my-1 border-t border-[var(--border)]" />
+            <button
+              type="button"
+              aria-label="Trash"
+              aria-current={trashPath === currentDir ? 'true' : undefined}
+              onClick={() => onNavigate(trashPath)}
+              className={`flex h-9 w-full shrink-0 items-center gap-2 rounded-[var(--radius)] px-2 transition-colors duration-150 hover:bg-[var(--surface)] hover:text-[var(--fg)] ${
+                trashPath === currentDir ? 'bg-[var(--surface)] text-[var(--fg)]' : 'text-[var(--muted)]'
+              }`}
+            >
+              <Trash2 size={18} strokeWidth={1.5} className="shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate text-left text-sm">Trash</span>
+            </button>
           </>
         )}
 

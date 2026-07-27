@@ -153,3 +153,27 @@ func TestVolumesEject(t *testing.T) {
 		}
 	})
 }
+
+func TestIsNetworkFSType(t *testing.T) {
+	network := []string{"smbfs", "afpfs", "nfs", "webdav", "ftp"}
+	for _, fstype := range network {
+		if !isNetworkFSType(fstype) {
+			t.Errorf("isNetworkFSType(%q) = false, want true", fstype)
+		}
+	}
+
+	local := []string{"apfs", "hfs", "msdos", "exfat", ""}
+	for _, fstype := range local {
+		if isNetworkFSType(fstype) {
+			t.Errorf("isNetworkFSType(%q) = true, want false", fstype)
+		}
+	}
+}
+
+func TestFstypeString(t *testing.T) {
+	var raw [16]byte
+	copy(raw[:], "smbfs")
+	if got := fstypeString(raw); got != "smbfs" {
+		t.Errorf("fstypeString() = %q, want %q", got, "smbfs")
+	}
+}

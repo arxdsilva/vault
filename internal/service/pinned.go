@@ -4,24 +4,26 @@ import (
 	"context"
 	"sync"
 
-	"github.com/asilva/vault/internal/core"
+	"github.com/arxdsilva/vault/internal/core"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // Pinned is the Wails service exposing the user's pinned locations (spec
 // §5.1 Home screen, §4.3 pinned rail) to the frontend.
 type Pinned struct {
-	path string
-	home string
+	path          string
+	home          string
+	extraDefaults []string
 
 	mu    sync.RWMutex
 	store *core.Pinned
 }
 
 // NewPinned returns a Pinned persisted at path. home seeds the pin list with
-// Finder/Explorer-style starter folders (see core.DefaultPins) on first run.
-func NewPinned(path, home string) *Pinned {
-	return &Pinned{path: path, home: home}
+// Finder/Explorer-style starter folders, plus any extraDefaults (e.g.
+// platform.ApplicationsDir() on macOS — see core.DefaultPins), on first run.
+func NewPinned(path, home string, extraDefaults ...string) *Pinned {
+	return &Pinned{path: path, home: home, extraDefaults: extraDefaults}
 }
 
 // ServiceName names this service for Wails logging/debugging.
@@ -29,7 +31,7 @@ func (p *Pinned) ServiceName() string { return "Pinned" }
 
 // ServiceStartup loads the persisted pin list.
 func (p *Pinned) ServiceStartup(_ context.Context, _ application.ServiceOptions) error {
-	store, err := core.LoadPinned(p.path, core.DefaultPins(p.home))
+	store, err := core.LoadPinned(p.path, core.DefaultPins(p.home, p.extraDefaults...))
 	if err != nil {
 		return err
 	}

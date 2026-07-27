@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/asilva/vault/internal/core"
+	"github.com/arxdsilva/vault/internal/core"
 )
 
 // thumbnailMaxSize is the max edge length (px) generated thumbnails are
@@ -171,6 +171,13 @@ func (f *Files) Compress(path string) (string, error) {
 // Delete moves path to the OS trash/recycle bin.
 func (f *Files) Delete(path string) error {
 	return f.trash.Trash(path)
+}
+
+// TrashLocation returns the OS trash's browsable directory (see
+// core.Trasher.Location), so the frontend can pin/navigate to it like any
+// other folder.
+func (f *Files) TrashLocation() (string, error) {
+	return f.trash.Location()
 }
 
 func (f *Files) pushUndo(op undoOp) {

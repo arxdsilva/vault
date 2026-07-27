@@ -3,6 +3,7 @@
 package darwin
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/asilva/vault/internal/core"
+	"github.com/arxdsilva/vault/internal/core"
 	"golang.org/x/sys/unix"
 )
 
@@ -81,10 +82,12 @@ func (v *Volumes) List() ([]core.Volume, error) {
 		}
 
 		var total, free uint64
+		var isNetwork bool
 		var stat unix.Statfs_t
 		if err := unix.Statfs(path, &stat); err == nil {
 			total = uint64(stat.Bsize) * stat.Blocks
 			free = uint64(stat.Bsize) * stat.Bavail
+			isNetwork = isNetworkFSType(fstypeString(stat.Fstypename))
 		}
 
 		volumes = append(volumes, core.Volume{
@@ -93,6 +96,7 @@ func (v *Volumes) List() ([]core.Volume, error) {
 			Ejectable:  ejectable,
 			TotalBytes: total,
 			FreeBytes:  free,
+			IsNetwork:  isNetwork,
 		})
 	}
 
@@ -108,4 +112,26 @@ func (v *Volumes) Eject(path string) error {
 		return fmt.Errorf("diskutil eject %s: %w: %s", path, err, strings.TrimSpace(string(out)))
 	}
 	return nil
+}
+
+// fstypeString converts Statfs_t's fixed-size, NUL-terminated Fstypename
+// buffer into a plain Go string.
+func fstypeString(raw [16]byte) string {
+	n := bytes.IndexByte(raw[:], 0)
+	if n < 0 {
+		n = len(raw)
+	}
+	return string(raw[:n])
+}
+
+// isNetworkFSType reports whether fstype (as macOS's statfs reports it,
+// e.g. "smbfs", "nfs", "afpfs", "webdav") names a network filesystem — an
+// already-mounted share, not live network-neighborhood discovery.
+func isNetworkFSType(fstype string) bool {
+	switch fstype {
+	case "smbfs", "afpfs", "nfs", "webdav", "ftp":
+		return true
+	default:
+		return false
+	}
 }

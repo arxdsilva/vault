@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/asilva/vault/internal/core"
+	"github.com/arxdsilva/vault/internal/core"
 )
 
 // Win32 GetDriveType return values (fileapi.h).
@@ -110,6 +110,7 @@ func (v *Volumes) List() ([]core.Volume, error) {
 			Ejectable:  !strings.EqualFold(drive, sysDrive),
 			TotalBytes: total,
 			FreeBytes:  free,
+			IsNetwork:  driveType == driveRemote,
 		})
 	}
 

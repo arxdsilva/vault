@@ -7,6 +7,9 @@ package windows
 
 import (
 	"fmt"
+	"os"
+	"os/user"
+	"path/filepath"
 	"syscall"
 	"unsafe"
 )
@@ -38,11 +41,57 @@ var (
 
 // Trash implements core.Trasher for Windows via SHFileOperationW with
 // FOF_ALLOWUNDO, the same call Explorer makes for a Recycle Bin delete.
-type Trash struct{}
+type Trash struct {
+	// SystemDrive overrides which drive's $Recycle.Bin Location resolves
+	// (used by tests); defaults to the SystemDrive environment variable.
+	SystemDrive string
+	// SID overrides the current user's SID subfolder (used by tests); the
+	// zero value resolves it from the OS lazily.
+	SID string
+}
 
 // NewTrash returns a Trash ready for use.
 func NewTrash() *Trash {
 	return &Trash{}
+}
+
+func (t *Trash) systemDrive() string {
+	if t.SystemDrive != "" {
+		return t.SystemDrive
+	}
+	if sd := os.Getenv("SystemDrive"); sd != "" {
+		return sd
+	}
+	return "C:"
+}
+
+func (t *Trash) sid() (string, error) {
+	if t.SID != "" {
+		return t.SID, nil
+	}
+	u, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return u.Uid, nil
+}
+
+// Location returns the current user's $Recycle.Bin subfolder on the system
+// drive, creating it if it doesn't exist yet. A real, browsable directory,
+// but (unlike Finder's ~/.Trash or Linux's XDG trash) its entries are
+// opaque, shell-obfuscated names ("$Rxxxxxx.ext"/"$Ixxxxxx.ext" pairs) —
+// Explorer's own Recycle Bin view resolves those to original names via
+// Shell API, which this project doesn't implement yet.
+func (t *Trash) Location() (string, error) {
+	sid, err := t.sid()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(t.systemDrive()+`\`, "$Recycle.Bin", sid)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	return dir, nil
 }
 
 // Trash moves path to the Recycle Bin.

@@ -102,15 +102,18 @@ func LoadPinned(path string, defaults []string) (*Pinned, error) {
 }
 
 // DefaultPins returns the Finder/Explorer-style starter pins for a first
-// run: home and its Desktop/Documents/Downloads subfolders, limited to the
-// ones that actually exist.
-func DefaultPins(home string) []string {
-	candidates := []string{
+// run: home and its Desktop/Documents/Downloads subfolders, plus any extra
+// OS-specific candidates the caller passes (e.g. platform.ApplicationsDir()
+// on macOS) — limited, in both cases, to the ones that actually exist, so
+// an empty string or an OS with no equivalent is silently dropped rather
+// than needing its own branch here.
+func DefaultPins(home string, extra ...string) []string {
+	candidates := append([]string{
 		home,
 		filepath.Join(home, "Desktop"),
 		filepath.Join(home, "Documents"),
 		filepath.Join(home, "Downloads"),
-	}
+	}, extra...)
 	var out []string
 	for _, c := range candidates {
 		if info, err := os.Stat(c); err == nil && info.IsDir() {

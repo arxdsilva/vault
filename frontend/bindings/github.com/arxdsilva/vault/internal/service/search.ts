@@ -28,7 +28,7 @@ import * as $models from "./models.js";
  * doc comment for why that matters.
  */
 export function Query(query: string, limit: number, dir: string): $CancellablePromise<core$0.IndexEntry[] | null> {
-    return $Call.ByID(1354932529, query, limit, dir);
+    return $Call.ByID(848464509, query, limit, dir);
 }
 
 /**
@@ -37,7 +37,7 @@ export function Query(query: string, limit: number, dir: string): $CancellablePr
  * are skipped rather than returned as broken entries.
  */
 export function Recent(limit: number): $CancellablePromise<$models.RecentEntry[] | null> {
-    return $Call.ByID(1377353856, limit);
+    return $Call.ByID(363604980, limit);
 }
 
 /**
@@ -45,7 +45,7 @@ export function Recent(limit: number): $CancellablePromise<$models.RecentEntry[]
  * ranking (spec §5.2 frecency).
  */
 export function Touch(path: string): $CancellablePromise<void> {
-    return $Call.ByID(85586506, path);
+    return $Call.ByID(2949678846, path);
 }
 
 /**
@@ -57,5 +57,5 @@ export function Touch(path: string): $CancellablePromise<void> {
  * the frontend doesn't wait on this call).
  */
 export function Visit(dir: string): $CancellablePromise<void> {
-    return $Call.ByID(2747309646, dir);
+    return $Call.ByID(2384587770, dir);
 }

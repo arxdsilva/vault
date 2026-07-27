@@ -16,7 +16,7 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
  * crash rather than only being saved at clean shutdown.
  */
 export function Add(path: string): $CancellablePromise<void> {
-    return $Call.ByID(1455065956, path);
+    return $Call.ByID(2098560680, path);
 }
 
 /**
@@ -25,14 +25,14 @@ export function Add(path: string): $CancellablePromise<void> {
  * to work with.
  */
 export function List(): $CancellablePromise<string[] | null> {
-    return $Call.ByID(2204717969);
+    return $Call.ByID(2237261437);
 }
 
 /**
  * Remove unpins path and persists the change immediately.
  */
 export function Remove(path: string): $CancellablePromise<void> {
-    return $Call.ByID(1934785229, path);
+    return $Call.ByID(849641633, path);
 }
 
 /**
@@ -40,5 +40,5 @@ export function Remove(path: string): $CancellablePromise<void> {
  * the change immediately.
  */
 export function Reorder(paths: string[] | null): $CancellablePromise<void> {
-    return $Call.ByID(1069033560, paths);
+    return $Call.ByID(4007535564, paths);
 }

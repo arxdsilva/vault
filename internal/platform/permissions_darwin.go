@@ -3,8 +3,8 @@
 package platform
 
 import (
-	"github.com/asilva/vault/internal/core"
-	"github.com/asilva/vault/internal/platform/darwin"
+	"github.com/arxdsilva/vault/internal/core"
+	"github.com/arxdsilva/vault/internal/platform/darwin"
 )
 
 // NewPermissions returns the OS-appropriate permission adapter for the
