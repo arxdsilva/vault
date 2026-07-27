@@ -48,6 +48,7 @@ function App() {
   const [chatOpen, setChatOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [clearSelectionSignal, setClearSelectionSignal] = useState(0)
+  const [markedCount, setMarkedCount] = useState(0)
   const permissionPrompt = usePermissionPrompt()
   const {
     accent,
@@ -161,7 +162,7 @@ function App() {
         searchRef.current?.focus()
         return
       }
-      if (e.key === 'Escape' && !overlayOpen && selectedEntries.length > 0) {
+      if (e.key === 'Escape' && !overlayOpen && markedCount > 0) {
         e.preventDefault()
         clearSelection()
         return
@@ -238,6 +239,7 @@ function App() {
     navigate,
     parentOf,
     selectedEntries,
+    markedCount,
     clipboard.entries,
     previewPath,
     paletteMode,
@@ -518,6 +520,7 @@ function App() {
                   entries={entries}
                   onOpen={handleOpen}
                   onSelectionChange={setSelectedEntries}
+                  onMarkedCountChange={setMarkedCount}
                   onContextMenu={handleContextMenu}
                   renamingPath={renamingPath}
                   onRenameSubmit={handleRenameSubmit}
@@ -529,6 +532,7 @@ function App() {
                   entries={entries}
                   onOpen={handleOpen}
                   onSelectionChange={setSelectedEntries}
+                  onMarkedCountChange={setMarkedCount}
                   onContextMenu={handleContextMenu}
                   renamingPath={renamingPath}
                   onRenameSubmit={handleRenameSubmit}
@@ -562,7 +566,7 @@ function App() {
       )}
 
       <SelectionActionBar
-        count={selectedEntries.length}
+        count={searching ? 0 : markedCount}
         isPinned={selectionIsPinned}
         onRunAction={runSelectionAction}
         onClear={clearSelection}

@@ -17,6 +17,10 @@ interface GridViewProps {
   // Changing this value (e.g. an incrementing counter) clears the selection —
   // see useMultiSelect's clearSignal.
   clearSelectionSignal?: unknown
+  // Reports the true marked count, separate from onSelectionChange's
+  // fallback-inclusive count — App.tsx's selection action bar should only
+  // appear for an explicit mark, not just because some tile has focus.
+  onMarkedCountChange?: (count: number) => void
 }
 
 const TILE_SIZE = 104 // px per tile, including gap
@@ -29,8 +33,9 @@ function optionId(index: number): string {
 // rendered, same instant-scroll principle as the list view. Exposed as a
 // listbox (role="listbox"/"option", aria-selected) — see FileList.tsx/
 // SearchResults.tsx for the same pattern and its virtualization caveat.
-// Multi-select shares useMultiSelect with FileList; here a "move" is a
-// 2D step (columns computed from the container width) rather than +/-1.
+// Marking shares useMultiSelect with FileList (see its doc comment for the
+// focus-vs-mark split); here a "move" is a 2D step (columns computed from
+// the container width) rather than +/-1.
 export function GridView({
   entries,
   onOpen,
@@ -40,10 +45,11 @@ export function GridView({
   onRenameSubmit,
   onRenameCancel,
   clearSelectionSignal,
+  onMarkedCountChange,
 }: GridViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [width, setWidth] = useState(0)
-  const { selected, focus, handleClick, moveFocus, selectForContextMenu, selectAll, toggle } = useMultiSelect(
+  const { marked, focus, handleClick, moveFocus, selectForContextMenu, selectAll, toggle } = useMultiSelect(
     entries.length,
     clearSelectionSignal,
   )
@@ -57,9 +63,11 @@ export function GridView({
   }, [])
 
   useEffect(() => {
-    onSelectionChange?.(entriesAt(selected, entries))
+    const effective = marked.size > 0 ? entriesAt(marked, entries) : entries[focus] ? [entries[focus]] : []
+    onSelectionChange?.(effective)
+    onMarkedCountChange?.(marked.size)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, entries])
+  }, [marked, focus, entries])
 
   const columns = Math.max(1, Math.floor(width / TILE_SIZE))
   const rowCount = Math.ceil(entries.length / columns)
@@ -144,20 +152,22 @@ export function GridView({
                 const index = row.index * columns + col
                 const entry = entries[index]
                 if (!entry) return <div key={col} className="h-28 w-24 shrink-0" />
-                const isSelected = selected.has(index)
+                const isMarked = marked.has(index)
                 return (
                   <GridTile
                     key={entry.path}
                     entry={entry}
                     id={optionId(index)}
-                    selected={isSelected}
+                    marked={isMarked}
+                    focused={index === focus}
                     setSize={entries.length}
                     posInSet={index + 1}
                     isRenaming={entry.path === renamingPath}
                     onSelect={(e) => handleClick(index, e)}
+                    onToggleMark={() => toggle(index)}
                     onOpen={() => onOpen(entry)}
                     onContextMenu={(e) => {
-                      const effective = isSelected ? entriesAt(selected, entries) : [entry]
+                      const effective = isMarked ? entriesAt(marked, entries) : [entry]
                       selectForContextMenu(index)
                       onContextMenu?.(e, effective)
                     }}

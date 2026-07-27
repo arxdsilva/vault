@@ -18,11 +18,21 @@ const GROUPS: ShortcutGroup[] = [
   {
     title: 'Navigation',
     shortcuts: [
-      { keys: '↑ ↓ ← →', label: 'Move selection' },
+      { keys: '↑ ↓ ← →', label: 'Move the cursor' },
       { keys: 'Enter', label: 'Open' },
       { keys: 'Space', label: 'Quick preview' },
       { keys: 'Cmd/Ctrl+↑', label: 'Go to parent folder' },
       { keys: 'Escape', label: 'Close / clear search' },
+    ],
+  },
+  {
+    title: 'Marking (for bulk actions)',
+    shortcuts: [
+      { keys: 'X / Checkbox', label: 'Mark or unmark the current item' },
+      { keys: 'Shift+Click / Shift+Arrow', label: 'Mark a range' },
+      { keys: 'Cmd/Ctrl+Click', label: 'Mark/unmark one item' },
+      { keys: 'Cmd/Ctrl+A', label: 'Mark all' },
+      { keys: 'Escape', label: 'Clear marks' },
     ],
   },
   {
