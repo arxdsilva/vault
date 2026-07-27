@@ -14,6 +14,9 @@ interface GridViewProps {
   renamingPath?: string | null
   onRenameSubmit?: (entry: Entry, name: string) => void
   onRenameCancel?: () => void
+  // Changing this value (e.g. an incrementing counter) clears the selection —
+  // see useMultiSelect's clearSignal.
+  clearSelectionSignal?: unknown
 }
 
 const TILE_SIZE = 104 // px per tile, including gap
@@ -36,10 +39,14 @@ export function GridView({
   renamingPath,
   onRenameSubmit,
   onRenameCancel,
+  clearSelectionSignal,
 }: GridViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [width, setWidth] = useState(0)
-  const { selected, focus, handleClick, moveFocus, selectForContextMenu, selectAll } = useMultiSelect(entries.length)
+  const { selected, focus, handleClick, moveFocus, selectForContextMenu, selectAll, toggle } = useMultiSelect(
+    entries.length,
+    clearSelectionSignal,
+  )
 
   useEffect(() => {
     const el = containerRef.current
@@ -90,6 +97,11 @@ export function GridView({
     } else if (e.key === 'Enter') {
       e.preventDefault()
       if (entries[focus]) onOpen(entries[focus])
+    } else if (e.key.toLowerCase() === 'x' && !mod && !e.altKey) {
+      // Gmail-style toggle: "x" checks/unchecks the focused tile without
+      // moving focus, building a selection one keystroke at a time.
+      e.preventDefault()
+      toggle(focus)
     }
   }
 

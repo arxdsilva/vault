@@ -19,6 +19,9 @@ interface FileListProps {
   renamingPath?: string | null
   onRenameSubmit?: (entry: Entry, name: string) => void
   onRenameCancel?: () => void
+  // Changing this value (e.g. an incrementing counter) clears the selection —
+  // see useMultiSelect's clearSignal.
+  clearSelectionSignal?: unknown
 }
 
 function optionId(index: number): string {
@@ -39,9 +42,13 @@ export function FileList({
   renamingPath,
   onRenameSubmit,
   onRenameCancel,
+  clearSelectionSignal,
 }: FileListProps) {
   const parentRef = useRef<HTMLDivElement | null>(null)
-  const { selected, focus, handleClick, moveFocus, selectForContextMenu, selectAll } = useMultiSelect(entries.length)
+  const { selected, focus, handleClick, moveFocus, selectForContextMenu, selectAll, toggle } = useMultiSelect(
+    entries.length,
+    clearSelectionSignal,
+  )
 
   useEffect(() => {
     onSelectionChange?.(entriesAt(selected, entries))
@@ -72,6 +79,11 @@ export function FileList({
     } else if (e.key === 'Enter') {
       e.preventDefault()
       if (entries[focus]) onOpen(entries[focus])
+    } else if (e.key.toLowerCase() === 'x' && !mod && !e.altKey) {
+      // Gmail-style toggle: "x" checks/unchecks the focused row without
+      // moving focus, building a selection one keystroke at a time.
+      e.preventDefault()
+      toggle(focus)
     }
   }
 

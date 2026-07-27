@@ -12,13 +12,28 @@ interface ClickModifiers {
 // `focus` index (the aria-activedescendant / Enter-to-open / arrow-key
 // target) which is always one of the selected indices except right after a
 // Cmd/Ctrl-click deselects the item focus was on.
-export function useMultiSelect(count: number) {
+// clearSignal is an opaque value (e.g. an incrementing counter) that, when
+// it changes, empties the selection — how a parent (App.tsx's selection
+// action bar "Clear" button / Escape) clears this hook's own state instead
+// of just its own mirrored copy of it.
+export function useMultiSelect(count: number, clearSignal?: unknown) {
   // Index 0 starts selected (once there's anything to select) so arrow keys/
   // Enter work immediately without an initial click — matches the previous
   // single-select behavior both FileList and GridView had.
   const [selected, setSelected] = useState<Set<number>>(new Set([0]))
   const [focus, setFocus] = useState(0)
   const anchorRef = useRef(0)
+  const isFirstClearSignal = useRef(true)
+
+  useEffect(() => {
+    // Skip the mount-time run — clearSignal's initial value is a change
+    // from "no value yet", not a real clear request.
+    if (isFirstClearSignal.current) {
+      isFirstClearSignal.current = false
+      return
+    }
+    setSelected(new Set())
+  }, [clearSignal])
 
   useEffect(() => {
     const nextFocus = clampIndex(focus, count)
@@ -82,5 +97,5 @@ export function useMultiSelect(count: number) {
     setSelected(allIndices(count))
   }
 
-  return { selected, focus, handleClick, moveFocus, selectSingle, selectForContextMenu, selectAll }
+  return { selected, focus, handleClick, moveFocus, selectSingle, selectForContextMenu, selectAll, toggle }
 }

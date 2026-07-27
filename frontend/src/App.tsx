@@ -12,6 +12,7 @@ import { PinnedRail } from './components/PinnedRail'
 import { PreviewOverlay } from './components/PreviewOverlay'
 import { PropertiesDialog } from './components/PropertiesDialog'
 import { SearchResults } from './components/SearchResults'
+import { SelectionActionBar } from './components/SelectionActionBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ShortcutHelp } from './components/ShortcutHelp'
 import { Toast } from './components/Toast'
@@ -46,6 +47,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [clearSelectionSignal, setClearSelectionSignal] = useState(0)
   const permissionPrompt = usePermissionPrompt()
   const {
     accent,
@@ -74,6 +76,24 @@ function App() {
     currentDir,
     pinned,
     clipboardEntries: clipboard.entries,
+  }
+  const selectionIsPinned = selectedEntries.length > 0 && selectedEntries.every((e) => pinned.includes(e.path))
+
+  // Selection action bar's "Clear" / Escape: resets both this mirror and,
+  // via clearSelectionSignal, FileList/GridView's own useMultiSelect state
+  // (which onSelectionChange only mirrors — clearing just this wouldn't
+  // deselect the actual rows/tiles).
+  function clearSelection() {
+    setSelectedEntries([])
+    setClearSelectionSignal((n) => n + 1)
+  }
+
+  // Shared by the selection action bar and the context menu: every action
+  // dispatches through handleRunAction except "move-to", which needs the
+  // command palette's folder picker rather than running immediately.
+  function runSelectionAction(id: string) {
+    if (id === 'move-to') setPaletteMode('moveTo')
+    else handleRunAction(id)
   }
 
   // Files in the currently visible list, in display order — what Space
@@ -139,6 +159,11 @@ function App() {
       if (e.key === '/' && !mod && !e.altKey && !overlayOpen) {
         e.preventDefault()
         searchRef.current?.focus()
+        return
+      }
+      if (e.key === 'Escape' && !overlayOpen && selectedEntries.length > 0) {
+        e.preventDefault()
+        clearSelection()
         return
       }
       if (e.key === '?' && !mod && !e.altKey && !overlayOpen) {
@@ -497,6 +522,7 @@ function App() {
                   renamingPath={renamingPath}
                   onRenameSubmit={handleRenameSubmit}
                   onRenameCancel={() => setRenamingPath(null)}
+                  clearSelectionSignal={clearSelectionSignal}
                 />
               ) : (
                 <FileList
@@ -507,6 +533,7 @@ function App() {
                   renamingPath={renamingPath}
                   onRenameSubmit={handleRenameSubmit}
                   onRenameCancel={() => setRenamingPath(null)}
+                  clearSelectionSignal={clearSelectionSignal}
                 />
               )}
             </>
@@ -529,13 +556,17 @@ function App() {
           x={contextMenu.x}
           y={contextMenu.y}
           ctx={actionCtx}
-          onRunAction={(id) => {
-            if (id === 'move-to') setPaletteMode('moveTo')
-            else handleRunAction(id)
-          }}
+          onRunAction={runSelectionAction}
           onClose={() => setContextMenu(null)}
         />
       )}
+
+      <SelectionActionBar
+        count={selectedEntries.length}
+        isPinned={selectionIsPinned}
+        onRunAction={runSelectionAction}
+        onClear={clearSelection}
+      />
 
       {previewEntry && (
         <PreviewOverlay
