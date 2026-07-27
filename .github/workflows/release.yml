@@ -91,7 +91,7 @@ jobs:
         run: |
           wails3 task windows:package
           mkdir -p release-assets
-          cp build/windows/nsis/vault-amd64-installer.exe "release-assets/vault_${GITHUB_REF_NAME}_windows_amd64-installer.exe"
+          cp bin/vault-amd64-installer.exe "release-assets/vault_${GITHUB_REF_NAME}_windows_amd64-installer.exe"
 
       - name: Package (Linux AppImage/.deb/.rpm)
         if: matrix.platform == 'linux'
