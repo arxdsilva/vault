@@ -45,7 +45,8 @@ func main() {
 
 	app.RegisterService(application.NewService(service.NewVolumes(platform.NewVolumes(), app.Event)))
 
-	app.RegisterService(application.NewService(service.NewPermissions(platform.NewPermissions())))
+	permissionPromptPath := filepath.Join(configDir, "vault", "permission-prompt.json")
+	app.RegisterService(application.NewService(service.NewPermissions(platform.NewPermissions(), permissionPromptPath)))
 
 	// Streams arbitrary file bytes to the frontend for quick preview (spec
 	// §5.4): images/video/audio/PDF load directly via <img>/<video>/<audio>/

@@ -105,4 +105,6 @@ export const vault = {
 
   permissionStatus: () => PermissionsService.Status() as unknown as Promise<PermissionStatus>,
   openPermissionSettings: () => PermissionsService.OpenSettings(),
+  permissionPromptDismissed: () => PermissionsService.PromptDismissed(),
+  dismissPermissionPrompt: () => PermissionsService.DismissPrompt(),
 }

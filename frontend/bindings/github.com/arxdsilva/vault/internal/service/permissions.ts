@@ -7,6 +7,12 @@
  * guide the user to grant it once at startup instead of a separate system
  * prompt for every protected folder (Desktop, Documents, Downloads, …) as
  * it's first visited.
+ * 
+ * Whether the startup prompt has been dismissed is persisted to path, so
+ * declining it once doesn't nag on every subsequent launch while the
+ * permission stays ungranted. This is independent of Status, which always
+ * reflects the real OS grant — a folder that fails to open still surfaces
+ * permission guidance inline regardless of this flag.
  * @module
  */
 
@@ -19,10 +25,26 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as core$0 from "../core/models.js";
 
 /**
+ * DismissPrompt persists that the user has handled the startup permission
+ * prompt (via "Not now" or after being sent to Settings).
+ */
+export function DismissPrompt(): $CancellablePromise<void> {
+    return $Call.ByID(3800557669);
+}
+
+/**
  * OpenSettings opens the OS's settings surface for granting the permission.
  */
 export function OpenSettings(): $CancellablePromise<void> {
     return $Call.ByID(1493708040);
+}
+
+/**
+ * PromptDismissed reports whether the user has already dismissed the
+ * startup permission prompt, so it isn't shown again every launch.
+ */
+export function PromptDismissed(): $CancellablePromise<boolean> {
+    return $Call.ByID(3984398956);
 }
 
 /**
