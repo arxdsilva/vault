@@ -41,6 +41,16 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      # GTK4 + WebKitGTK 6.0 dev headers, matching build/linux/nfpm/nfpm.yaml's
+      # runtime dependency stack (Ubuntu 24.04+/Debian 13+). Must precede the
+      # wails3 install: cgo compiles the Linux backend while building the CLI,
+      # so a missing gtk4.pc fails there first.
+      - name: Install Linux build dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
+
       - name: Install wails3 CLI (pinned to go.mod's wails version)
         shell: bash
         run: |
@@ -48,19 +58,21 @@ jobs:
           go install "github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}"
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
-      # GTK4 + WebKitGTK 6.0 dev headers, matching build/linux/nfpm/nfpm.yaml's
-      # runtime dependency stack (Ubuntu 24.04+/Debian 13+).
-      - name: Install Linux build dependencies
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
-
       # NSIS isn't preinstalled on windows-latest; build/windows/Taskfile.yml's
-      # installer task shells out to makensis.
+      # installer task shells out to makensis. choco only writes the install
+      # dir to the machine PATH, which the already-running job never re-reads,
+      # so it has to be added to GITHUB_PATH explicitly.
       - name: Install NSIS
         if: matrix.platform == 'windows'
-        run: choco install nsis -y
+        shell: pwsh
+        run: |
+          choco install nsis -y --no-progress
+          "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Verify makensis is on PATH
+        if: matrix.platform == 'windows'
+        shell: bash
+        run: makensis /VERSION
 
       - name: Package (macOS universal .dmg)
         if: matrix.platform == 'darwin'
