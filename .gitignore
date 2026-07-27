@@ -1,6 +1,9 @@
 .task
 bin
 /vault
+# CI staging dir for the per-OS installers goreleaser attaches to a release;
+# untracked files here would otherwise trip goreleaser's dirty-state check.
+release-assets/
 frontend/dist
 frontend/node_modules
 build/linux/appimage/build
